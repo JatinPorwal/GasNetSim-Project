@@ -1,4 +1,5 @@
 import csv
+import os
 
 def validate_pipeline_csv_format(file_path):
     expected_headers = [
@@ -20,15 +21,13 @@ def validate_pipeline_csv_format(file_path):
         'diameter_m',
         'length_m'
     ]
+    if not(os.path.isfile(file_path)):
+        print("The file is either missing or not readable")
+        return False
 
     with open(file_path, 'r') as file:
         reader = csv.DictReader(file, delimiter=';')
         headers = reader.fieldnames
-        #reader = [re.replace({np.nan: None}) for re in reader]
-        
-        # remove spaces from the headers before comparing with the expected headers
-        #headers = [header.replace(' ', '') for header in headers]
-        #print(headers)
 
         # Check if headers match the expected format
         if headers != expected_headers:
@@ -41,10 +40,6 @@ def validate_pipeline_csv_format(file_path):
                 if row[key] == '' or row[key] is None or row[key].lower() == 'nan':  # Check for None values or 'nan'
                     print(f"Missing value in column '{key}' in one or more rows.")
                     return False
-                #print(row[key])
-                #print(key)
-            #print(row)
-            #print('##\nnew row \n##')
 
     print("The CSV file follows the expected format.")
     return True
@@ -52,3 +47,4 @@ def validate_pipeline_csv_format(file_path):
 # Replace 'file_path' with the path of the pipeline CSV file
 file_path = 'Irish13_pipelines.csv'
 validate_pipeline_csv_format(file_path)
+
