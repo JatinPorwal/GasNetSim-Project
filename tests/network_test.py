@@ -3,25 +3,23 @@
 
 import GasNetSim as gns
 from pathlib import Path
-import numpy as np
 from numpy.testing import assert_almost_equal
-import pandas as pd
+
 
 def network_test():
-    
+
     # Create a network instance with Irish13
-    
     # Initialize the network with nodes and connections from a CSV file in the current directory
-    network = gns.create_network_from_csv(Path('.'))
+    network = gns.create_network_from_csv(Path('../unit_testing'))
 
     # Simulate the network to compute the pressures and flows
-    network.simulation(tol = 0.0000001)
+    network.simulation(tol=0.0000001)
 
     # Define the expected final pressure values for comparison
     expected_final_pressure = [7000000., 7000000., 7000000., 6933669.72289829,
                                6835569.60774993, 6623690.36661754, 6605743.43571843,
                                6602395.62670504, 6600915.11259321, 6592750.20799817,
-                               6795230.64383087, 6791480.37767578, 6753737.3583671 ]
+                               6795230.64383087, 6791480.37767578, 6753737.3583671]
 
     # Retrieve the final pressure values from the simulated network nodes
     final_pressure = [node.pressure for node in network.nodes.values()]
