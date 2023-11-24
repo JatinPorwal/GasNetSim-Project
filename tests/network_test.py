@@ -18,7 +18,7 @@ def network_test():
 
     # Create a network instance with Irish13
     # Initialize the network with nodes and connections from a CSV file in the current directory
-    network = gns.create_network_from_csv(Path('.'))
+    network = gns.create_network_from_csv(Path('../examples/Irish13/.'))
 
     # Simulate the network to compute the pressures and flows
     network.simulation(tol=0.0000001)
