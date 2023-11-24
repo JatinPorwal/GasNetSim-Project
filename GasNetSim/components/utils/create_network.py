@@ -134,7 +134,7 @@ def create_network_from_csv(path_to_folder: Path) -> Network:
     nodes_file = next((file for file in all_files if 'node' in file.stem), None)
 
     if nodes_file is None:
-        raise FileNameError("Nodes file (nodes.csv) not found.")
+        raise FileNameError("Nodes file (_nodes.csv) not found in the provisioned path directory.")
 
     nodes = read_nodes(nodes_file)
 
