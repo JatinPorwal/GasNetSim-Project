@@ -130,7 +130,13 @@ def create_network_from_csv(path_to_folder: Path) -> Network:
     :return:
     """
     all_files = list(path_to_folder.glob('*.csv'))
-    nodes = read_nodes(Path('./' + '_'.join(all_files[0].stem.split('_')[:-1]) + '_nodes.csv'))
+    # nodes = read_nodes(Path('./' + '_'.join(all_files[0].stem.split('_')[:-1]) + '_nodes.csv'))
+    nodes_file = next((file for file in all_files if 'node' in file.stem), None)
+
+    if nodes_file is None:
+        raise FileNameError("Nodes file (nodes.csv) not found.")
+
+    nodes = read_nodes(nodes_file)
 
     network_components = {'node': nodes,  # the dataset should have at least node
                           'pipeline': None,
