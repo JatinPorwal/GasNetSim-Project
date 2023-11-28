@@ -19,7 +19,7 @@ class ValidateCsvFiles:
         CSV File validation class
     """
 
-    def __init__(self, file_path=None, pipelines_expected_headers=None, pipeline_mandatory_headers=None,
+    def __init__(self, file_path=None, pipeline_expected_headers=None, pipeline_mandatory_headers=None,
                  nodes_expected_headers=None):
 
         """
@@ -36,11 +36,19 @@ class ValidateCsvFiles:
             self.nodes_expected_headers = ['node_index', 'pressure_pa', 'flow_sm3_per_s', 'flow_MW', 'altitude_m',
                                            'temperature_k', 'gas_composition', 'node_type', 'flow_type', 'longitude',
                                            ' latitude', ' remarks']
-        if pipelines_expected_headers is None:
+        else:
+            self.nodes_expected_headers = nodes_expected_headers
+
+        if pipeline_expected_headers is None:
             self.pipeline_expected_headers = {'pipeline_index', 'inlet_index', 'outlet_index', 'diameter_m', 'length_m',
                                               ' is_bothDirection', 'max_cap_M_m3_per_d', 'max_pressure_bar', 'remarks'}
+        else:
+            self.pipeline_expected_headers = pipeline_expected_headers
+
         if pipeline_mandatory_headers is None:
             self.pipeline_mandatory_headers = ['pipeline_index', 'inlet_index', 'outlet_index', 'diameter_m', 'length_m']
+        else:
+            self.pipeline_mandatory_headers = pipeline_mandatory_headers
 
         self.file_path = file_path
 
