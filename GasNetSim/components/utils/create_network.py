@@ -133,9 +133,6 @@ def create_network_from_csv(path_to_folder: Path) -> Network:
     # nodes = read_nodes(Path('./' + '_'.join(all_files[0].stem.split('_')[:-1]) + '_nodes.csv'))
     nodes_file = next((file for file in all_files if 'node' in file.stem), None)
 
-    if nodes_file is None:
-        raise FileNameError("Nodes file (_nodes.csv) not found in the provisioned path directory.")
-
     nodes = read_nodes(nodes_file)
 
     network_components = {'node': nodes,  # the dataset should have at least node
