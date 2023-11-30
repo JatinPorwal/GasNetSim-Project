@@ -5,6 +5,7 @@
 # This test script serves to confirm that the Network class maintains its functionality post-modifications.
 # **********************************************************************************************************************
 
+import os
 import GasNetSim as gns
 from pathlib import Path
 from numpy.testing import assert_almost_equal
@@ -14,11 +15,36 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def find_git_root(path):
+    """
+    Find the root path of the Git repository starting from the given path.
+
+    Args:
+    - path: The starting directory path to search from.
+
+    Returns:
+    - The root path of the Git repository or None if not found.
+    """
+    # Traverse up the directory tree until finding the .git folder
+    while path != '/':
+        if os.path.isdir(os.path.join(path, '.git')):
+            return path
+        path = os.path.dirname(path)
+    return None
+
+
 def test_network():
+
+    # Find the current absolute path
+    test_directory_path = os.path.abspath(os.getcwd())
+    # Find the root path of the Git repository
+    root_path = find_git_root(test_directory_path)
+    new_path = os.path.join(root_path, 'examples', 'Irish13')
 
     # Create a network instance with Irish13
     # Initialize the network with nodes and connections from a CSV file in the current directory
-    network = gns.create_network_from_csv(Path('../examples/Irish13/.'))
+    # network = gns.create_network_from_csv(Path('../examples/Irish13/.'))
+    network = gns.create_network_from_csv(Path(new_path))
 
     # Simulate the network to compute the pressures and flows
     network.simulation(tol=0.0000001)
