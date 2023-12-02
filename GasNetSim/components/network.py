@@ -15,6 +15,7 @@ import copy
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import optimize
+from scipy.sparse import coo_matrix, csc_matrix, csr_matrix
 from collections import OrderedDict
 
 from .utils.gas_mixture.heating_value import *
@@ -53,6 +54,7 @@ class Network:
         self.junction_nodes = self.find_junction_nodes()
         self.run_initialization = run_initialization
         self.pressure_prev = pressure_prev
+        self.incidence_matrix = self.create_incidence_matrix()
 
     def all_edge_components(self):
         connections = dict()
@@ -69,6 +71,29 @@ class Network:
                     i_connection += 1
 
         return connections
+
+    def create_incidence_matrix(self):
+        connections = self.all_edge_components()
+
+        node_ids = {node_id-1 for c in connections.values() for node_id in [c.inlet_index, c.outlet_index]}
+
+        row_indices = []
+        col_indices = []
+        data_values = []
+
+        for branch_id, branch_data in connections.items():
+            row_indices.extend([branch_data.inlet_index-1, branch_data.outlet_index-1])  # node indices start from 1
+            col_indices.extend([branch_id, branch_id])  # branch_id starts from 0
+            data_values.extend([1, -1])
+
+        # Determine the shape of the incidence matrix
+        num_nodes = len(node_ids)
+        num_branches = len(connections)
+        shape = (num_nodes, num_branches)
+
+        # Create the COO matrix
+        incidence_matrix = coo_matrix((data_values, (row_indices, col_indices)), shape=shape)
+        return incidence_matrix
 
     def plot_pipeline_length_distribution(self):
         lines = self.pipelines.values()
