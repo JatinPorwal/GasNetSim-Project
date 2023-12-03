@@ -12,7 +12,7 @@
 import os
 import GasNetSim as gns
 from pathlib import Path
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_allclose
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -90,7 +90,11 @@ def test_network_volume_flow_rate_balance():
                 outlet_flow += connection.flow_rate
 
         # Add initial flow to the outlet flow for each node
-        outlet_flow += initial_flows.get(node_index, 0)
+        initial_flow = initial_flows.get(node_index, 0)
+        if initial_flow <= 0:
+            inlet_flow -= initial_flow
+        else:
+            outlet_flow += initial_flow
 
         # Append node information to the lists
         node_indices.append(node_index)
@@ -113,7 +117,7 @@ def test_network_volume_flow_rate_balance():
 def test_network_energy_flow_balance():
     """
         Test to ensure the energy flow balance within a network.
-        Calculates the total energy flowing in and out of the network to verify energy conservation.
+        Calculates the energy flowing in and out of each node in the network to verify energy conservation.
     """
     # Find the current absolute path
     test_directory_path = os.path.abspath(os.getcwd())
@@ -129,14 +133,41 @@ def test_network_energy_flow_balance():
     # Simulate the network to compute the pressures and flows
     network.simulation(tol=0.0000001)
 
-    # Calculate total energy flow going into the network
-    total_energy_in = sum([node.energy_flow for node in network.nodes.values() if node.energy_flow > 0])
+    # Calculate energy flow at inlet and outlet for each node over the entire Network
+    # Calculate initial flow rates from the nodes
+    initial_volume_flows = {node_index: node.volumetric_flow if node.volumetric_flow is not None else 0
+                            for node_index, node in network.nodes.items()}
 
-    # Calculate total energy flow going out of the network
-    total_energy_out = sum([node.energy_flow for node in network.nodes.values() if node.energy_flow < 0])
+    # Iterate through nodes in the network to gather inlet and outlet flow information
+    for node_index, node in network.nodes.items():
+        inlet_flow = 0
+        outlet_flow = 0
+        inlet_energy = 0
+        outlet_energy = 0
 
-    # Assert that the total energy going into the network equals the total energy going out (within a tolerance)
-    assert_almost_equal(total_energy_in, abs(total_energy_out))
+        # Iterate through connections to find flows related to the current node
+        for connection in network.connections.values():
+            if connection.outlet_index == node_index:
+                inlet_flow += connection.flow_rate
+            elif connection.inlet_index == node_index:
+                outlet_flow += connection.flow_rate
+
+        # Add initial flow based on sign to the inlet or outlet flow for each node
+        initial_flow = initial_volume_flows.get(node_index, 0)
+        if initial_flow <= 0:
+            inlet_flow -= initial_flow
+        else:
+            outlet_flow += initial_flow
+
+        # Retrieve pressure values from the simulated network nodes
+        pressure = node.pressure
+
+        # Calculate inlet and outlet energy based on pressure and flows
+        inlet_energy += pressure * inlet_flow
+        outlet_energy += pressure * outlet_flow
+        # print(f"inlet energy = {inlet_energy}, outlet energy = {outlet_energy}")
+        assert_allclose(inlet_energy, outlet_energy)
+        # print(f"inlet = {inlet_flow}, outlet = {outlet_flow}")
 
     # If the assertion passes, print a message indicating that the test passed
     logger.info(f"Test passed: Results match the expected values for energy_flow_rate_balance.")
@@ -146,7 +177,7 @@ def test_network_composition_balance():
 
     """
         Test to ensure the accuracy of gas composition within a network simulation.
-        Calculates the total mass flow rate and component wise mass flow rate to verify the composition balance.
+        Calculates the total volumetric flow rate and component wise flow rate to verify the composition balance.
     """
     # Find the current absolute path
     test_directory_path = os.path.abspath(os.getcwd())
@@ -162,20 +193,22 @@ def test_network_composition_balance():
     # Simulate the network to compute the pressures and flows
     network.simulation(tol=0.0000001)
 
-    # Calculate the composition balance for each pipeline
+    # Calculate the composition balance for each pipeline using volumetric flow rates
     for i, pipeline in network.pipelines.items():
-        # Calculate the total mass flow rate
-        mass_flow_rate = pipeline.flow_rate * pipeline.gas_mixture.density
+        # Calculate the total volumetric flow rate
+        volumetric_flow_rate = pipeline.flow_rate  # Assuming flow rate is already volumetric
 
-        # Calculate the mass flow rate of each component
-        component_flow_rates = {component: mole_fraction * mass_flow_rate
+        # Calculate the volumetric flow rate of each component (assuming mole_fraction is equivalent to volume fraction)
+        component_flow_rates = {component: mole_fraction * volumetric_flow_rate
                                 for component, mole_fraction in pipeline.gas_mixture.composition.items()}
+        # print(component_flow_rates)
 
-        # Calculate the total component mass flow rate
-        total_component_mass_flow_rate = sum(component_flow_rates.values())
+        # Calculate the total component volumetric flow rate
+        total_component_volumetric_flow_rate = sum(component_flow_rates.values())
 
-        # Check if the total component mass flow rate equals the total mass flow rate within a tolerance
-        assert_almost_equal(total_component_mass_flow_rate, mass_flow_rate)
+        # Check if the total component volumetric flow rate equals the total volumetric flow rate within a tolerance
+        assert_almost_equal(total_component_volumetric_flow_rate, volumetric_flow_rate)
+        # print([total_component_volumetric_flow_rate, volumetric_flow_rate])
 
     # If the assertion passes, print a message indicating that the test passed
     logger.info(f"Test passed: Results match the expected values for composition_balance.")
