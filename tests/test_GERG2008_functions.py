@@ -2,6 +2,7 @@
 from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
 from scipy.constants import bar
 from numpy.testing import assert_almost_equal
+import numpy as np
 
 
 # Test the tanh, sinh, and cosh functions
@@ -119,12 +120,12 @@ def test_pressure_gerg():
     gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
 
     # Define the density input for PressureGERG method
-    d = 1000
+    d = 10
 
     # Calculate the expected pressure using an example formula or method
-    expected_pressure = 2.5532549524167652e+16
-    expected_compressibility_factor = 7677140991.083876
-    expected_calculated_dpdd = 204183482532894.53
+    expected_pressure = 34030.02185084158
+    expected_compressibility_factor = 1.0232165629652001
+    expected_calculated_dpdd = 4665.32077103759
 
     # Call the PressureGERG method with the given diameter
     calculated_pressure, calculated_compressibility_factor, calculated_dpdd = gas_mixture.PressureGERG(d)
@@ -157,3 +158,122 @@ def test_density_gerg():
     # Test the DensityGERG function with iFlag=0 (default)
     _, _, calculated_density = gas_mixture.DensityGERG()  # Calling the function without any argument
     assert_almost_equal(expected_density, calculated_density)
+
+
+def test_alpha0_gerg():
+    """
+        Test the Alpha0GERG() function of GasMixtureGERG2008 class.
+    """
+    # Create the NIST gas mixture dictionary
+    nist_gas_mixture = {}
+    a = ['methane', 'nitrogen', 'carbon dioxide', 'ethane', 'propane', 'isobutane',
+         'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
+         'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
+         'helium', 'argon']
+    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
+         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    for ii in range(21):
+        nist_gas_mixture[a[ii]] = b[ii]
+
+    # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+
+    # Expected value calculated from the function call
+    # a0(0) - Ideal gas Helmholtz energy (all dimensionless [i.e., divided by RT])
+    # a0(1) - tau*partial(a0)/partial(tau)
+    # a0(2) - tau^2*partial^2(a0)/partial(tau)^2
+    expected_alpha0 = [3.915632780302234, 0.27817599098351004, -4.4002653106914655]
+
+    # Call the Alpha0GERG function
+    actual_alpha0 = gas_mixture.Alpha0GERG()
+    assert_almost_equal(actual_alpha0, expected_alpha0)
+
+
+def test_reducing_parameters_gerg():
+    """
+        Test the ReducingParametersGERG() function of GasMixtureGERG2008 class.
+    """
+    # Create the NIST gas mixture dictionary
+    nist_gas_mixture = {}
+    a = ['methane', 'nitrogen', 'carbon dioxide', 'ethane', 'propane', 'isobutane',
+         'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
+         'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
+         'helium', 'argon']
+    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
+         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    for ii in range(21):
+        nist_gas_mixture[a[ii]] = b[ii]
+
+    # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+
+    # Expected value calculated from the function call
+    expected_reducingparametersgerg = [211.29730660311438, 9.389250212600038]
+
+    # Call the ReducingParametersGERG function
+    # Tr - Reducing temperature(K)
+    # Dr - Reducing density(mol / l)
+    actual_reducingparametersgerg = gas_mixture.ReducingParametersGERG()
+    assert_almost_equal(actual_reducingparametersgerg, expected_reducingparametersgerg)
+
+
+def test_pseudo_critical_point_gerg():
+    """
+            Test the PseudoCriticalPointGERG() function of GasMixtureGERG2008 class.
+    """
+    # Create the NIST gas mixture dictionary
+    nist_gas_mixture = {}
+    a = ['methane', 'nitrogen', 'carbon dioxide', 'ethane', 'propane', 'isobutane',
+         'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
+         'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
+         'helium', 'argon']
+    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
+         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    for ii in range(21):
+        nist_gas_mixture[a[ii]] = b[ii]
+
+    # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+
+    # Expected value calculated from the function call
+    expected_pseudocriticalpointgerg = [211.69335825999997, 9.378320910617676]
+
+    # Call the ReducingParametersGERG function
+    actual_pseudocriticalpointgerg = gas_mixture.PseudoCriticalPointGERG()
+    assert_almost_equal(actual_pseudocriticalpointgerg, expected_pseudocriticalpointgerg)
+
+
+def test_alphar_gerg():
+    """
+            Test the AlpharGERG() function of GasMixtureGERG2008 class.
+    """
+    # Create the NIST gas mixture dictionary
+    nist_gas_mixture = {}
+    a = ['methane', 'nitrogen', 'carbon dioxide', 'ethane', 'propane', 'isobutane',
+         'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
+         'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
+         'helium', 'argon']
+    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
+         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    for ii in range(21):
+        nist_gas_mixture[a[ii]] = b[ii]
+
+    # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+
+    # Expected value calculated from the function call
+    #                         ar(0,0) - Residual Helmholtz energy (dimensionless, =a/RT)
+    #                         ar(0,1) -     delta*partial  (ar)/partial(delta)
+    #                         ar(0,2) -   delta^2*partial^2(ar)/partial(delta)^2
+    #                         ar(0,3) -   delta^3*partial^3(ar)/partial(delta)^3
+    #                         ar(1,0) -       tau*partial  (ar)/partial(tau)
+    #                         ar(1,1) - tau*delta*partial^2(ar)/partial(tau)/partial(delta)
+    #                         ar(2,0) -     tau^2*partial^2(ar)/partial(tau)^2
+    expected_alphargerg = np.array([[-0.12350275432589777, 0.02321656296520004, 0.3563380816212008, 0.2932603390400152],
+                                    [-0.8745987057694501, -0.8246675326603303, 0.040189577810096334, 0],
+                                    [-0.24620538247419213, 0, 0, 0],
+                                    [0, 0, 0, 0]])
+
+    # Call the ReducingParametersGERG function
+    actual_alphargerg = gas_mixture.AlpharGERG(1, 0, 10)
+    assert_almost_equal(actual_alphargerg, expected_alphargerg)
