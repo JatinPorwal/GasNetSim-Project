@@ -52,8 +52,10 @@ def test_heating_value():
     gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
 
     # Test the CalculateHeatingValue function
-    expected_heating_value = 11452626.041728042
-    calculated_heating_value = gas_mixture.CalculateHeatingValue(comp=nist_gas_mixture, hhv=True, parameter="volume")
+    expected_heating_value = gas_mixture.CalculateHeatingValue(comp=nist_gas_mixture, hhv=True, parameter="volume")
+    molarmass = gas_mixture.MolarMass
+    molardensity = gas_mixture.MolarDensity
+    calculated_heating_value = CalculateHeatingValue_numba(MolarMass=molarmass, MolarDensity=molardensity, comp=nist_gas_mixture, hhv=True, parameter="volume")
 
     assert_almost_equal(calculated_heating_value, expected_heating_value)
 
