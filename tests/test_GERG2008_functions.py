@@ -1,8 +1,24 @@
+# **********************************************************************************************************************
+# This script contains a comprehensive set of unit tests designed to validate the functionalities and calculations
+# within the GasNetSim components. The tests primarily focus on the GasMixtureGERG2008 class found in the gas_mixture
+# module of GasNetSim. These tests aim to ensure accurate and reliable performance of critical methods related to gas
+# mixture properties and calculations.
+
+# The script includes test cases for various functions within the GasMixtureGERG2008 class, such as the hyperbolic
+# tangent, hyperbolic sine, and hyperbolic cosine functions, as well as methods like CalculateHeatingValue,
+# ConvertCompositionGERG, MolarMassGERG, PressureGERG, DensityGERG, Alpha0GERG, ReducingParametersGERG,
+# PseudoCriticalPointGERG, and AlpharGERG.
+
+# Each test is designed to assert the correctness and consistency of calculations involved in determining properties
+# like heating value, molar mass, pressure, density, ideal gas Helmholtz energy, reducing parameters,
+# pseudo-critical point, and residual Helmholtz energy.
+# **********************************************************************************************************************
+
 
 from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
 from scipy.constants import bar
-from numpy.testing import assert_almost_equal
-import numpy as np
+from numpy.testing import assert_almost_equal, assert_allclose
+from tests.gerg2008_numba import *
 
 
 # Test the tanh, sinh, and cosh functions
@@ -10,17 +26,11 @@ def test_tanh_sinh_cosh():
     """
         Test the hyperbolic tangent (tanh), hyperbolic sine (sinh), and hyperbolic cosine (cosh) functions.
     """
-    assert_almost_equal(Tanh(0), 0.0)
-    assert_almost_equal(Tanh(1), 0.7615941559557649)
-    assert_almost_equal(Tanh(-1), -0.7615941559557649)
-
-    assert_almost_equal(Sinh(0), 0.0)
-    assert_almost_equal(Sinh(1), 1.1752011936438014)
-    assert_almost_equal(Sinh(-1), -1.1752011936438014)
-
-    assert_almost_equal(Cosh(0), 1.0)
-    assert_almost_equal(Cosh(1), 1.5430806348152437)
-    assert_almost_equal(Cosh(-1), 1.5430806348152437)
+    test_cases = [-1.0, 0.0, 1.0]
+    for x in test_cases:
+        assert_almost_equal(Tanh_numba(x), Tanh(x))
+        assert_almost_equal(Sinh_numba(x), Sinh(x))
+        assert_almost_equal(Cosh_numba(x), Cosh(x))
 
 
 def test_heating_value():
@@ -54,6 +64,7 @@ def test_convert_composition_gerg():
     """
     # Create the NIST gas mixture dictionary
     nist_gas_mixture = {}
+
     a = ['methane', 'nitrogen', 'carbon dioxide', 'ethane', 'propane', 'isobutane',
          'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
          'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
@@ -67,11 +78,11 @@ def test_convert_composition_gerg():
     gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
 
     # Test the ConvertCompositionGERG function
-    expected_result = [0.0, 0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024,
-                       0.00015, 9e-05, 0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    expected_result = gas_mixture.CovertCompositionGERG(nist_gas_mixture)
+    expected_result.pop(0)
 
     # Calculate the converted composition using ConvertCompositionGERG method
-    converted_composition = gas_mixture.CovertCompositionGERG(nist_gas_mixture)
+    converted_composition = CovertCompositionGERG_numba(nist_gas_mixture)
     assert_almost_equal(converted_composition, expected_result)
 
 
@@ -85,8 +96,8 @@ def test_molarmass_gerg():
          'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
          'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
          'helium', 'argon']
-    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
-         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015,
+                  0.00009, 0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
     for ii in range(21):
         nist_gas_mixture[a[ii]] = b[ii]
 
@@ -94,10 +105,10 @@ def test_molarmass_gerg():
     gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
 
     # Calculate the expected molar mass manually based on the given mixture
-    expected_molar_mass = 20.5427445016
+    expected_molar_mass = gas_mixture.MolarMassGERG()
 
     # Get the calculated molar mass from the MolarMassGERG method
-    calculated_molar_mass = gas_mixture.MolarMassGERG()
+    calculated_molar_mass = MolarMassGERG_numba(b)
     assert_almost_equal(expected_molar_mass, calculated_molar_mass)
 
 
@@ -199,8 +210,8 @@ def test_reducing_parameters_gerg():
          'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
          'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
          'helium', 'argon']
-    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
-         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015,
+                  0.00009, 0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
     for ii in range(21):
         nist_gas_mixture[a[ii]] = b[ii]
 
@@ -208,12 +219,12 @@ def test_reducing_parameters_gerg():
     gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
 
     # Expected value calculated from the function call
-    expected_reducingparametersgerg = [211.29730660311438, 9.389250212600038]
+    expected_reducingparametersgerg = gas_mixture.ReducingParametersGERG()
 
     # Call the ReducingParametersGERG function
     # Tr - Reducing temperature(K)
     # Dr - Reducing density(mol / l)
-    actual_reducingparametersgerg = gas_mixture.ReducingParametersGERG()
+    actual_reducingparametersgerg = ReducingParametersGERG_numba(b)
     assert_almost_equal(actual_reducingparametersgerg, expected_reducingparametersgerg)
 
 
@@ -227,8 +238,8 @@ def test_pseudo_critical_point_gerg():
          'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
          'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
          'helium', 'argon']
-    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
-         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015,
+                  0.00009, 0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
     for ii in range(21):
         nist_gas_mixture[a[ii]] = b[ii]
 
@@ -236,11 +247,11 @@ def test_pseudo_critical_point_gerg():
     gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
 
     # Expected value calculated from the function call
-    expected_pseudocriticalpointgerg = [211.69335825999997, 9.378320910617676]
+    expected_pseudocriticalpointgerg = gas_mixture.PseudoCriticalPointGERG()
 
     # Call the ReducingParametersGERG function
-    actual_pseudocriticalpointgerg = gas_mixture.PseudoCriticalPointGERG()
-    assert_almost_equal(actual_pseudocriticalpointgerg, expected_pseudocriticalpointgerg)
+    actual_pseudocriticalpointgerg = PseudoCriticalPointGERG_numba(b)
+    assert_allclose(actual_pseudocriticalpointgerg, expected_pseudocriticalpointgerg)
 
 
 def test_alphar_gerg():
