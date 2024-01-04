@@ -378,7 +378,6 @@ def tTermsGERG_numba(lntau, x):
     """
     global taup, taupijk
     taup, taupijk = tTermsGERG_numba_sub(taup, taupijk, lntau, x)
-    print(taup)
 
 
 @njit
@@ -420,3 +419,24 @@ def tTermsGERG_numba_sub(taup, taupijk, lntau, x):
                             taupijk[mn][k] = nijk[mn][k] * math.exp(tijk[mn][k] * lntau)
 
     return taup, taupijk
+
+
+@njit(types.UniTuple(float64, 3)(float64[:, :], float64, float64))
+def PressureGERG_numba(ar, T, D):
+    """
+    Sub PressureGERG(T, D, x, P, Z)
+
+    Calculate pressure as a function of temperature and density.  The derivative d(P)/d(D) is also calculated
+    for use in the iterative DensityGERG subroutine (and is only returned as a common variable).
+
+    :return:        P: Pressure (kPa)
+                    Z: Compressibility factor
+                    dPdDsave - d(P)/d(D) [kPa/(mol/l)] (at constant temperature)
+    //          - This variable is cached in the common variables for use in the iterative density solver, but not returned as an argument.
+    """
+    #ar = self.AlpharGERG_numba(itau=0, idelta=0, D=D)
+
+    Z = 1 + ar[0][1]
+    P = D * RGERG * T * Z
+    dPdDsave = RGERG * T * (1 + 2 * ar[0][1] + ar[0][2])
+    return P, Z, dPdDsave
