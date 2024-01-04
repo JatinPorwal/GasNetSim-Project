@@ -2732,9 +2732,9 @@ for i in range(MaxMdl):
 T0 = 298.15
 d0 = 101.325 / RGERG / T0
 for i in range(MaxFlds):
-    n0i[i][3] = n0i[i][3] - 1
-    n0i[i][2] = n0i[i][2] + T0
+    n0i[i][2] = n0i[i][2] - 1
+    n0i[i][1] = n0i[i][1] + T0
     for j in range(7):
         n0i[i][j] = Rsr * n0i[i][j]
-    n0i[i][2] = n0i[i][2] - T0
-    n0i[i][1] = n0i[i][1] - math.log(d0)
+    n0i[i][1] = n0i[i][1] - T0
+    n0i[i][0] = n0i[i][0] - math.log(d0)

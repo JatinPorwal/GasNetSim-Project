@@ -1,7 +1,7 @@
-from numba import njit, float64, types
+from numba import njit, float64, types, int64
 from numba.extending import overload
 from tests.global_variables import *
-# from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
+#from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
 
 
 @njit(float64(float64))
@@ -302,3 +302,121 @@ def CalculateHeatingValue_numba(MolarMass, MolarDensity, comp, hhv, parameter):
             heating_value = LHV * MolarDensity
 
     return heating_value
+
+
+@njit
+def Alpha0GERG_numba(Temp, MolarDensity, X):
+    """
+            Private Sub Alpha0GERG(T, D, x, a0)
+
+            Calculate the ideal gas Helmholtz energy and its derivatives with respect to tau and delta.
+            This routine is not needed when only P (or Z) is calculated.
+            Inputs:
+                T: Temperature (K)
+                D: Density (mol/l)
+                x: Composition (mole fraction)
+            return:
+                a0:        a0(0) - Ideal gas Helmholtz energy (all dimensionless [i.e., divided by RT])
+                           a0(1) - tau*partial(a0)/partial(tau)
+                           a0(2) - tau^2*partial^2(a0)/partial(tau)^2
+            """
+    T = Temp
+    D = MolarDensity
+    x = X
+    th0T = 0.0
+    LogxD = 0.0
+    SumHyp0 = 0.0
+    SumHyp1 = 0.0
+    SumHyp2 = 0.0
+    hcn = 0.0
+    hsn = 0.0
+
+    a0 = [0.0] * 3
+    if D > epsilon:
+        LogD = math.log(D)
+    else:
+        LogD = math.log(epsilon)
+    LogT = math.log(T)
+    for i in range(NcGERG):
+        if x[i] > epsilon:
+            LogxD = LogD + math.log(x[i])
+            SumHyp0 = 0
+            SumHyp1 = 0
+            SumHyp2 = 0
+        for j in range(3, 7):
+            if th0i[i][j] > epsilon:
+                th0T = th0i[i][j] / T
+                ep = math.exp(th0T)
+                em = 1 / ep
+                hsn = (ep - em) / 2
+                hcn = (ep + em) / 2
+                if j == 3 or j == 5:
+                    LogHyp = math.log(abs(hsn))
+                    SumHyp0 = SumHyp0 + n0i[i][j] * LogHyp
+                    SumHyp1 = SumHyp1 + n0i[i][j] * th0T * hcn / hsn
+                    SumHyp2 = SumHyp2 + n0i[i][j] * (th0T / hsn) * (th0T / hsn)
+                else:
+                    LogHyp = math.log(abs(hcn))
+                    SumHyp0 = SumHyp0 - n0i[i][j] * LogHyp
+                    SumHyp1 = SumHyp1 - n0i[i][j] * th0T * hsn / hcn
+                    SumHyp2 = SumHyp2 + n0i[i][j] * (th0T / hcn) * (th0T / hcn)
+
+        a0[0] += +x[i] * (LogxD + n0i[i][0] + n0i[i][1] / T - n0i[i][2] * LogT + SumHyp0)
+        a0[1] += +x[i] * (n0i[i][2] + n0i[i][1] / T + SumHyp1)
+        a0[2] += -x[i] * (n0i[i][2] + SumHyp2)
+    return a0
+
+def tTermsGERG_numba(lntau, x):
+    """
+        Private Sub tTermsGERG(lntau, x)
+        Calculate temperature dependent parts of the GERG-2008 equation of state
+        Inputs:
+            lntau:  tau = Tr / T => lntau = math.log(tau)
+            x:      Composition (mole fraction)
+        return:
+            null
+    """
+    global taup, taupijk
+    taup, taupijk = tTermsGERG_numba_sub(taup, taupijk, lntau, x)
+    print(taup)
+
+
+@njit
+def tTermsGERG_numba_sub(taup, taupijk, lntau, x):
+    """
+        Calculate temperature-dependent parts of the GERG-2008 equation of state.
+
+        Inputs:
+            taup :    List containing calculated temperature-dependent values for taup.
+            taupijk : List containing calculated temperature-dependent values for taupijk.
+            lntau :   Natural logarithm of tau, a term used in the calculation.
+            x :       Composition (mole fraction) of the components.
+
+        returns:
+            taup :    Updated taup values.
+            taupijk : Updated taupijk values.
+    """
+    taup0 = [0] * (12)
+
+    i = 4  # Use propane to get exponents for short form of EOS
+    for k in range(int(kpol[i] + kexp[i])):  # for (int k = 1; k <= kpol[i] + kexp[i]; ++k)
+        taup0[k] = math.exp(toik[i][k] * lntau)
+    for i in range(NcGERG):  # for (int i = 1; i <= NcGERG; ++i)
+        if x[i] > epsilon:
+            if (i > 3) and (i != 14) and (i != 17) and (i != 19):
+                for k in range(int(kpol[i] + kexp[i])):  # for (int k = 1; k <= kpol[i] + kexp[i]; ++k)
+                    taup[i][k] = noik[i][k] * taup0[k]
+            else:
+                for k in range(int(kpol[i] + kexp[i])):  # for (int k = 1; k <= kpol[i] + kexp[i]; ++k)
+                    taup[i][k] = noik[i][k] * math.exp(toik[i][k] * lntau)
+
+    for i in range(NcGERG-1):  # for (int i = 1; i <= NcGERG - 1; ++i)
+        if x[i] > epsilon:
+            for j in range(i + 1, NcGERG):  # for (int j = i + 1; j <= NcGERG; ++j)
+                if x[j] > epsilon:
+                    mn = int(mNumb[i][j])
+                    if mn >= 0:
+                        for k in range(int(kpolij[mn])):  # for (int k = 1; k <= kpolij[mn]; ++k)
+                            taupijk[mn][k] = nijk[mn][k] * math.exp(tijk[mn][k] * lntau)
+
+    return taup, taupijk

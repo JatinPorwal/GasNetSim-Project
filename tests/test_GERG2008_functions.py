@@ -43,8 +43,8 @@ def test_heating_value():
          'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
          'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
          'helium', 'argon']
-    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
-         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
+         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
     for ii in range(21):
         nist_gas_mixture[a[ii]] = b[ii]
 
@@ -71,8 +71,8 @@ def test_convert_composition_gerg():
          'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
          'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
          'helium', 'argon']
-    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
-         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
+         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
     for ii in range(21):
         nist_gas_mixture[a[ii]] = b[ii]
 
@@ -124,8 +124,8 @@ def test_pressure_gerg():
          'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
          'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
          'helium', 'argon']
-    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
-         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
+         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
     for ii in range(21):
         nist_gas_mixture[a[ii]] = b[ii]
 
@@ -157,8 +157,8 @@ def test_density_gerg():
          'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
          'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
          'helium', 'argon']
-    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
-         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
+         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
     for ii in range(21):
         nist_gas_mixture[a[ii]] = b[ii]
 
@@ -183,8 +183,8 @@ def test_alpha0_gerg():
          'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
          'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
          'helium', 'argon']
-    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
-         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
+         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
     for ii in range(21):
         nist_gas_mixture[a[ii]] = b[ii]
 
@@ -195,10 +195,14 @@ def test_alpha0_gerg():
     # a0(0) - Ideal gas Helmholtz energy (all dimensionless [i.e., divided by RT])
     # a0(1) - tau*partial(a0)/partial(tau)
     # a0(2) - tau^2*partial^2(a0)/partial(tau)^2
-    expected_alpha0 = [3.915632780302234, 0.27817599098351004, -4.4002653106914655]
+    expected_alpha0 = gas_mixture.Alpha0GERG()
+
+    Temp = gas_mixture.T
+    MolarDensity = gas_mixture.MolarDensity
+    X = b
 
     # Call the Alpha0GERG function
-    actual_alpha0 = gas_mixture.Alpha0GERG()
+    actual_alpha0 = Alpha0GERG_numba(Temp, MolarDensity, X)
     assert_almost_equal(actual_alpha0, expected_alpha0)
 
 
@@ -266,8 +270,8 @@ def test_alphar_gerg():
          'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
          'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
          'helium', 'argon']
-    b = [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
-         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001]
+    b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
+         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
     for ii in range(21):
         nist_gas_mixture[a[ii]] = b[ii]
 
