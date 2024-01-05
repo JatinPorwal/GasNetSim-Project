@@ -163,12 +163,20 @@ def test_density_gerg():
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
     gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
 
+    # Define the density input for PressureGERG method
+    d = gas_mixture.MolarDensity
+
     # Expected value calculated from the function call
-    expected_density = 12.79828626082062
+    #expected_values = gas_mixture.PressureGERG(d)
+    _, _, expected_values = gas_mixture.DensityGERG()
+
+    AR = np.array(gas_mixture.AlpharGERG(itau=0, idelta=0, D=d))
+    Press = gas_mixture.P
+    Temp = gas_mixture.T
 
     # Test the DensityGERG function with iFlag=0 (default)
-    _, _, calculated_density = gas_mixture.DensityGERG()  # Calling the function without any argument
-    assert_almost_equal(expected_density, calculated_density)
+    _, _,calculated_values = DensityGERG_numba(AR, Press, Temp, b, iFlag=0)  # Calling the function without any argument
+    assert_allclose(expected_values, calculated_values)
 
 
 def test_alpha0_gerg():
