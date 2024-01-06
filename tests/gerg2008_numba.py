@@ -569,3 +569,84 @@ def DensityGERG_numba(ar, P, T, x, iFlag=0):
     herr = "Calculation failed to converge in GERG method, ideal gas density returned."
     D = P / RGERG / T
     return ierr, herr, D
+
+
+@njit(types.UniTuple(float64, 20)(float64, float64, float64[:], float64[:, :]))
+def PropertiesGERG_numba(T, P, x, ar):
+    """
+    Sub PropertiesGERG(T, D, x, P, Z, dPdD, d2PdD2, d2PdTD, dPdT, U, H, S, Cv, Cp, W, G, JT, Kappa, A)
+
+    Calculate thermodynamic properties as a function of temperature and density.  Calls are made to the subroutines
+    ReducingParametersGERG, IdealGERG, and ResidualGERG.  If the density is not known, call subroutine DENSITY first
+    with the known values of pressure and temperature.
+
+    Inputs:
+        T:      Temperature (K)
+        P:      Pressure (kPa)
+        x:      Composition (mole fraction)
+        ar:     Dimensionless residual Helmholtz energy and its derivatives with respect to tau and delta.
+
+    Returns:
+        Tuple of thermodynamic properties:
+            molar_mass:        Molar mass (g/mol)
+            D:                 Density (mol/l)
+            Z:                 Compressibility factor
+            dPdD:              First derivative of pressure with respect to density at constant temperature [kPa/(mol/l)]
+            d2PdD2:            Second derivative of pressure with respect to density at constant temperature [kPa/(mol/l)^2]
+            dPdT:              First derivative of pressure with respect to temperature at constant density (kPa/K)
+            U:                 Internal energy (J/mol)
+            H:                 Enthalpy (J/mol)
+            S:                 Entropy [J/(mol-K)]
+            Cv:                Isochoric heat capacity [J/(mol-K)]
+            Cp:                Isobaric heat capacity [J/(mol-K)]
+            Cv_molar:           Specific heat capacity at constant volume [J/(kg-K)]
+            Cp_molar:           Specific heat capacity at constant pressure [J/(kg-K)]
+            W:                 Speed of sound (m/s)
+            G:                 Gibbs energy (J/mol)
+            JT:                Joule-Thomson coefficient (K/Pa)
+            Kappa:             Isentropic exponent
+            Vm:                Molar volume (m^3/mol)
+            molar_mass_ratio:  Ratio of molar mass to air molar mass
+            R_specific:        Specific gas constant [J/(kg-K)]
+    """
+    # Calculate molar mass
+    molar_mass = MolarMassGERG_numba(x)
+
+    # Calculate the density
+    ierr, herr, D = DensityGERG_numba(ar, P, T, x, iFlag=0)
+    MolarDensity = D
+
+    # Calculate the ideal gas Helmholtz energy, and its first and second derivatives with respect to temperature.
+    a0 = Alpha0GERG_numba(T, D, x)
+    # Calculate the real gas Helmholtz energy, and its derivatives with respect to temperature and/or density.
+    #ar = self.AlpharGERG(itau=1, idelta=0, D=D)
+
+    R = RGERG
+    RT = R * T
+    Z = 1 + ar[0][1]
+    P = D * RT * Z
+    dPdD = RT * (1 + 2 * ar[0][1] + ar[0][2])
+    dPdT = D * R * (1 + ar[0][1] - ar[1][1])
+    d2PdTD = R * (1 + 2 * ar[0][1] + ar[0][2] - 2 * ar[1][1] - ar[1][2])
+    A = RT * (a0[0] + ar[0][0])
+    G = RT * (1 + ar[0][1] + a0[0] + ar[0][0])
+    U = RT * (a0[1] + ar[1][0])
+    H = RT * (1 + ar[0][1] + a0[1] + ar[1][0])
+    S = R * (a0[1] + ar[1][0] - a0[0] - ar[0][0])
+    Cv = -R * (a0[2] + ar[2][0])
+    if D > epsilon:
+        Cp = Cv + T * (dPdT / D) * (dPdT / D) / dPdD
+        d2PdD2 = RT * (2 * ar[0][1] + 4 * ar[0][2] + ar[0][3]) / D
+        JT = (T / D * dPdT / dPdD - 1) / Cp / D  #  '=(dB/dT*T-B)/Cp for an ideal gas, but dB/dT is not known
+    else:
+        Cp = Cv + R
+        d2PdD2 = 0
+        JT = 1E+20
+    W = 1000 * Cp / Cv * dPdD / molar_mass
+    if W < 0:
+        W = 0
+    W = math.sqrt(W)
+    Kappa = pow(W, 2) * molar_mass / (RT * 1000 * Z)
+
+    return (molar_mass, D, Z, dPdD, d2PdD2, dPdT, U, H, S, Cv, Cp, Cv * 1000 / molar_mass, Cp * 1000 / molar_mass,
+            W, G, JT / 1e3, Kappa, molar_mass * P / Z /RT, molar_mass / air_molar_mass, R / molar_mass)

@@ -7,7 +7,7 @@
 # The script includes test cases for various functions within the GasMixtureGERG2008 class, such as the hyperbolic
 # tangent, hyperbolic sine, and hyperbolic cosine functions, as well as methods like CalculateHeatingValue,
 # ConvertCompositionGERG, MolarMassGERG, PressureGERG, DensityGERG, Alpha0GERG, ReducingParametersGERG,
-# PseudoCriticalPointGERG, and AlpharGERG.
+# PropertiesGERG, PseudoCriticalPointGERG, and AlpharGERG.
 
 # Each test is designed to assert the correctness and consistency of calculations involved in determining properties
 # like heating value, molar mass, pressure, density, ideal gas Helmholtz energy, reducing parameters,
@@ -297,3 +297,51 @@ def test_alphar_gerg():
     # Call the ReducingParametersGERG function
     #actual_alphargerg = AlpharGERG_numba(Temp, 1, 0, 10, b)
     #assert_almost_equal(actual_alphargerg, expected_alphargerg)
+
+
+def test_PropertiesGERG_numba():
+    """
+    Test the PropertiesGERG_numba() function.
+    """
+    # Create the NIST gas mixture dictionary
+    nist_gas_mixture = {}
+    a = ['methane', 'nitrogen', 'carbon dioxide', 'ethane', 'propane', 'isobutane',
+         'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
+         'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
+         'helium', 'argon']
+    b = np.array(
+        [0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
+         0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
+    for ii in range(21):
+        nist_gas_mixture[a[ii]] = b[ii]
+
+    # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+
+    expected_PropertiesGERG = [gas_mixture.MolarMass,
+                                gas_mixture.MolarDensity,
+                                gas_mixture.Z,
+                                gas_mixture.dPdD,
+                                gas_mixture.d2PdD2,
+                                gas_mixture.dPdT,
+                                gas_mixture.energy,
+                                gas_mixture.enthalpy,
+                                gas_mixture.entropy,
+                                gas_mixture.Cv_molar,
+                                gas_mixture.Cp_molar,
+                                gas_mixture.Cv,
+                                gas_mixture.Cp,
+                                gas_mixture.c,
+                                gas_mixture.gibbs_energy,
+                                gas_mixture.JT,
+                                gas_mixture.isentropic_exponent,
+                                gas_mixture.rho,
+                                gas_mixture.SG,
+                                gas_mixture.R_specific]
+
+    d = gas_mixture.MolarDensity
+    AR = np.array(gas_mixture.AlpharGERG(itau=1, idelta=0, D=d))
+    # Call the PropertiesGERG function
+    calculated_PropertiesGERG = PropertiesGERG_numba(gas_mixture.T, gas_mixture.P, b, AR)
+
+    assert_allclose(expected_PropertiesGERG, calculated_PropertiesGERG)
