@@ -650,3 +650,126 @@ def PropertiesGERG_numba(T, P, x, ar):
 
     return (molar_mass, D, Z, dPdD, d2PdD2, dPdT, U, H, S, Cv, Cp, Cv * 1000 / molar_mass, Cp * 1000 / molar_mass,
             W, G, JT / 1e3, Kappa, molar_mass * P / Z /RT, molar_mass / air_molar_mass, R / molar_mass)
+
+
+def AlpharGERG_numba(T, x, itau, idelta, D):
+    """
+    Private Sub AlpharGERG(itau, idelta, T, D, x, ar)
+
+    Calculate dimensionless residual Helmholtz energy and its derivatives with respect to tau and delta.
+
+    :param itau:   Set this to 1 to calculate "ar" derivatives with respect to tau [i.e., ar(1,0), ar(1,1), and ar(2,0)], otherwise set it to 0.
+    :param idelta: Currently not used, but kept as an input for future use in specifying the highest density derivative needed.
+    :param T:      Temperature (K)
+    :param D:      Density (mol/l)
+    :param x:      Composition (mole fraction)
+    :return:        ar(0,0) - Residual Helmholtz energy (dimensionless, =a/RT)
+                    ar(0,1) -     delta*partial  (ar)/partial(delta)
+                    ar(0,2) -   delta^2*partial^2(ar)/partial(delta)^2
+                    ar(0,3) -   delta^3*partial^3(ar)/partial(delta)^3
+                    ar(1,0) -       tau*partial  (ar)/partial(tau)
+                    ar(1,1) - tau*delta*partial^2(ar)/partial(tau)/partial(delta)
+                    ar(2,0) -     tau^2*partial^2(ar)/partial(tau)^2
+    """
+
+    global Told, Trold, Trold2, Drold
+
+    global Tr, Dr
+    delp = [0] * (7 + 1)
+    Expd = [0] * (7 + 1)
+    ar = [[0] * 4 for _ in range(4)]
+
+    for i in range(4):
+        for j in range(4):
+            ar[i][j] = 0
+
+    # Set up del, tau, log(tau), and the first 7 calculations for del^i
+    Tr, Dr = ReducingParametersGERG_numba(x)
+    delta = D / Dr
+    tau = Tr / T
+    lntau = math.log(tau)
+    delp[0] = delta
+    Expd[0] = math.exp(-delp[0])
+    for i in range(1, 7):
+        delp[i] = delp[i - 1] * delta
+        Expd[i] = math.exp(-delp[i])
+
+    # If temperature has changed, calculate temperature dependent parts
+    if (abs(T - Told) > 0.0000001) or (abs(Tr - Trold2) > 0.0000001):
+        tTermsGERG_numba(lntau, x)
+    Told = T
+    Trold2 = Tr
+
+    # Calculate pure fluid contributions
+    for i in range(NcGERG):
+        if x[i] > epsilon:
+            for k in range(int(kpol[i])):
+                ndt = x[i] * delp[int(doik[i][k])] * taup[i][k]
+                ndtd = ndt * doik[i][k]
+                ar[0][1] += ndtd
+                ar[0][2] += ndtd * (doik[i][k] - 1)
+                if itau > 0:
+                    ndtt = ndt * toik[i][k]
+                    ar[0][0] += ndt
+                    ar[1][0] += ndtt
+                    ar[2][0] += ndtt * (toik[i][k] - 1)
+                    ar[1][1] += ndtt * doik[i][k]
+                    ar[1][2] += ndtt * doik[i][k] * (doik[i][k] - 1)
+                    ar[0][3] += ndtd * (doik[i][k] - 1) * (doik[i][k] - 2)
+
+            for k in range(int(kpol[i]), int(kpol[i] + kexp[i])):
+                ndt = x[i] * delp[int(doik[i][k])] * taup[i][k] * Expd[int(coik[i][k])]
+                ex = coik[i][k] * delp[int(coik[i][k])]
+                ex2 = doik[i][k] - ex
+                ex3 = ex2 * (ex2 - 1)
+                ar[0][1] += ndt * ex2
+                ar[0][2] += ndt * (ex3 - coik[i][k] * ex)
+                if itau > 0:
+                    ndtt = ndt * toik[i][k]
+                    ar[0][0] += ndt
+                    ar[1][0] += ndtt
+                    ar[2][0] += ndtt * (toik[i][k] - 1)
+                    ar[1][1] += ndtt * ex2
+                    ar[1][2] += ndtt * (ex3 - coik[i][k] * ex)
+                    ar[0][3] += ndt * (ex3 * (ex2 - 2) - ex * (3 * ex2 - 3 + coik[i][k]) * coik[i][k])
+
+    # Calculate mixture contributions
+    for i in range(NcGERG-1):  # for (int i = 1; i <= NcGERG - 1; ++i)
+        if x[i] > epsilon:
+            for j in range(i + 1, NcGERG):  # for (int j = i + 1; j <= NcGERG; ++j)
+                if x[j] > epsilon:
+                    mn = int(mNumb[i][j] - 1)
+                    if mn >= 0:
+                        xijf = x[i] * x[j] * fij[i][j]
+                        for k in range(int(kpolij[mn])):  # for (int k = 1; k <= kpolij[mn]; ++k)
+                            ndt = xijf * delp[int(dijk[mn][k])] * taupijk[mn][k]
+                            ndtd = ndt * dijk[mn][k]
+                            ar[0][1] += ndtd
+                            ar[0][2] += ndtd * (dijk[mn][k] - 1)
+                            if itau > 0:
+                                ndtt = ndt * tijk[mn][k]
+                                ar[0][0] += ndt
+                                ar[1][0] += ndtt
+                                ar[2][0] += ndtt * (tijk[mn][k] - 1)
+                                ar[1][1] += ndtt * dijk[mn][k]
+                                ar[1][2] += ndtt * dijk[mn][k] * (dijk[mn][k] - 1)
+                                ar[0][3] += ndtd * (dijk[mn][k] - 1) * (dijk[mn][k] - 2)
+
+                        for k in range(int(kpolij[mn] + 1), int(kpolij[mn] + kexpij[mn])):  # for (int k = 1 + kpolij[mn]; k <= kpolij[mn] + kexpij[mn]; ++k)
+                            cij0 = cijk[mn][k] * delp[2]
+                            eij0 = eijk[mn][k] * delta
+                            ndt = xijf * nijk[mn][k] * delp[int(dijk[mn][k])] * math.exp(
+                                cij0 + eij0 + gijk[mn][k] + tijk[mn][k] * lntau)
+                            ex = dijk[mn][k] + 2 * cij0 + eij0
+                            ex2 = (ex * ex - dijk[mn][k] + 2 * cij0)
+                            ar[0][1] += ndt * ex
+                            ar[0][2] += ndt * ex2
+                            if itau > 0:
+                                ndtt = ndt * tijk[mn][k]
+                                ar[0][0] += ndt
+                                ar[1][0] += ndtt
+                                ar[2][0] += ndtt * (tijk[mn][k] - 1)
+                                ar[1][1] += ndtt * ex
+                                ar[1][2] += ndtt * ex2
+                                ar[0][3] += ndt * (ex * (ex2 - 2 * (dijk[mn][k] - 2 * cij0)) + 2 * dijk[mn][k])
+    return ar
