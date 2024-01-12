@@ -675,8 +675,8 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
     global Told, Trold, Trold2, Drold
 
     global Tr, Dr
-    delp = [0] * (7 + 1)
-    Expd = [0] * (7 + 1)
+    delp = [0] * (7)
+    Expd = [0] * (7)
     ar = [[0] * 4 for _ in range(4)]
 
     for i in range(4):
@@ -704,7 +704,7 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
     for i in range(NcGERG):
         if x[i] > epsilon:
             for k in range(int(kpol[i])):
-                ndt = x[i] * delp[int(doik[i][k])] * taup[i][k]
+                ndt = x[i] * delp[int(doik[i][k] - 1)] * taup[i][k]
                 ndtd = ndt * doik[i][k]
                 ar[0][1] += ndtd
                 ar[0][2] += ndtd * (doik[i][k] - 1)
@@ -718,8 +718,8 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
                     ar[0][3] += ndtd * (doik[i][k] - 1) * (doik[i][k] - 2)
 
             for k in range(int(kpol[i]), int(kpol[i] + kexp[i])):
-                ndt = x[i] * delp[int(doik[i][k])] * taup[i][k] * Expd[int(coik[i][k])]
-                ex = coik[i][k] * delp[int(coik[i][k])]
+                ndt = x[i] * delp[int(doik[i][k] - 1)] * taup[i][k] * Expd[int(coik[i][k] - 1)]
+                ex = coik[i][k] * delp[int(coik[i][k] - 1)]
                 ex2 = doik[i][k] - ex
                 ex3 = ex2 * (ex2 - 1)
                 ar[0][1] += ndt * ex2
@@ -755,7 +755,7 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
                                 ar[1][2] += ndtt * dijk[mn][k] * (dijk[mn][k] - 1)
                                 ar[0][3] += ndtd * (dijk[mn][k] - 1) * (dijk[mn][k] - 2)
 
-                        for k in range(int(kpolij[mn] + 1), int(kpolij[mn] + kexpij[mn])):  # for (int k = 1 + kpolij[mn]; k <= kpolij[mn] + kexpij[mn]; ++k)
+                        for k in range(int(kpolij[mn]), int(kpolij[mn] + kexpij[mn])):  # for (int k = 1 + kpolij[mn]; k <= kpolij[mn] + kexpij[mn]; ++k)
                             cij0 = cijk[mn][k] * delp[2]
                             eij0 = eijk[mn][k] * delta
                             ndt = xijf * nijk[mn][k] * delp[int(dijk[mn][k])] * math.exp(
