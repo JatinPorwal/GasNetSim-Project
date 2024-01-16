@@ -321,17 +321,17 @@ class GasMixtureGERG2008:
         HHV = LHV + (hw_gas - hw_liq) * products_dict["water"]
 
         if parameter == 'mass':
-            # returns heating value in MJ/kg
+            # returns heating value in J/kg
             if hhv:
                 heating_value = HHV / self.MolarMass * 1e3
             else:
                 heating_value = LHV / self.MolarMass * 1e3
         else:
-            # returns heating value in kJ/m3
+            # returns heating value in J/m3
             if hhv:
-                heating_value = HHV * self.MolarDensity
+                heating_value = HHV / self.MolarDensity * 1e3
             else:
-                heating_value = LHV * self.MolarDensity
+                heating_value = LHV / self.MolarDensity * 1e3
 
         return heating_value
 
