@@ -513,7 +513,8 @@ class Network:
                 pipe_h2_fraction = list()
 
                 for i_node in self.non_junction_nodes:
-                    self.nodes[i_node].flow = nodal_flow[i_node-1]
+                    self.nodes[i_node].volumetric_flow = nodal_flow[i_node-1]
+                    self.nodes[i_node].convert_volumetric_to_energy_flow()
 
                 # output connection
                 for i_connection, connection in self.connections.items():
