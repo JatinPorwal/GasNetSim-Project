@@ -396,12 +396,12 @@ def tTermsGERG_numba_sub(taup, taupijk, lntau, x):
             taup :    Updated taup values.
             taupijk : Updated taupijk values.
     """
-    taup0 = [0] * (12)
+    taup0 = np.zeros(12)
 
     i = 4  # Use propane to get exponents for short form of EOS
     for k in range(int(kpol[i] + kexp[i])):  # for (int k = 1; k <= kpol[i] + kexp[i]; ++k)
         taup0[k] = math.exp(toik[i][k] * lntau)
-    for i in range(NcGERG-1):  # for (int i = 1; i <= NcGERG; ++i)
+    for i in range(NcGERG):  # for (int i = 1; i <= NcGERG; ++i)
         if x[i] > epsilon:
             if (i > 3) and (i != 14) and (i != 17) and (i != 19):
                 for k in range(int(kpol[i] + kexp[i])):  # for (int k = 1; k <= kpol[i] + kexp[i]; ++k)
@@ -410,7 +410,7 @@ def tTermsGERG_numba_sub(taup, taupijk, lntau, x):
                 for k in range(int(kpol[i] + kexp[i])):  # for (int k = 1; k <= kpol[i] + kexp[i]; ++k)
                     taup[i][k] = noik[i][k] * math.exp(toik[i][k] * lntau)
 
-    for i in range(NcGERG-1):  # for (int i = 1; i <= NcGERG - 1; ++i)
+    for i in range(NcGERG):  # for (int i = 1; i <= NcGERG - 1; ++i)
         if x[i] > epsilon:
             for j in range(i + 1, NcGERG):  # for (int j = i + 1; j <= NcGERG; ++j)
                 if x[j] > epsilon:
