@@ -3,6 +3,7 @@
 # within the GasNetSim components. The tests primarily focus on the GasMixtureGERG2008 class found in the gas_mixture
 # module of GasNetSim. These tests aim to ensure accurate and reliable performance of critical methods related to gas
 # mixture properties and calculations.
+import numpy as np
 
 # The script includes test cases for various functions within the GasMixtureGERG2008 class, such as the hyperbolic
 # tangent, hyperbolic sine, and hyperbolic cosine functions, as well as methods like CalculateHeatingValue,
@@ -292,10 +293,15 @@ def test_alphar_gerg():
     #                         ar(1,0) -       tau*partial  (ar)/partial(tau)
     #                         ar(1,1) - tau*delta*partial^2(ar)/partial(tau)/partial(delta)
     #                         ar(2,0) -     tau^2*partial^2(ar)/partial(tau)^2
-    expected_alphargerg = gas_mixture.AlpharGERG(1, 0, 10)
+
+    D = 15.03402741629294
+    expected_alphargerg = gas_mixture.AlpharGERG(1, 0, D)
+
     Temp = gas_mixture.T
+
     # Call the ReducingParametersGERG function
-    #actual_alphargerg = AlpharGERG_numba(Temp, 1, 0, 10, b)
+    actual_alphargerg = AlpharGERG_numba(Temp, b, 1, 0, D)
+
     #assert_almost_equal(actual_alphargerg, expected_alphargerg)
 
 

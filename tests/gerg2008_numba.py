@@ -366,6 +366,7 @@ def Alpha0GERG_numba(Temp, MolarDensity, X):
         a0[2] += -x[i] * (n0i[i][2] + SumHyp2)
     return a0
 
+
 def tTermsGERG_numba(lntau, x):
     """
         Private Sub tTermsGERG(lntau, x)
@@ -400,7 +401,7 @@ def tTermsGERG_numba_sub(taup, taupijk, lntau, x):
     i = 4  # Use propane to get exponents for short form of EOS
     for k in range(int(kpol[i] + kexp[i])):  # for (int k = 1; k <= kpol[i] + kexp[i]; ++k)
         taup0[k] = math.exp(toik[i][k] * lntau)
-    for i in range(NcGERG):  # for (int i = 1; i <= NcGERG; ++i)
+    for i in range(NcGERG-1):  # for (int i = 1; i <= NcGERG; ++i)
         if x[i] > epsilon:
             if (i > 3) and (i != 14) and (i != 17) and (i != 19):
                 for k in range(int(kpol[i] + kexp[i])):  # for (int k = 1; k <= kpol[i] + kexp[i]; ++k)
@@ -413,7 +414,7 @@ def tTermsGERG_numba_sub(taup, taupijk, lntau, x):
         if x[i] > epsilon:
             for j in range(i + 1, NcGERG):  # for (int j = i + 1; j <= NcGERG; ++j)
                 if x[j] > epsilon:
-                    mn = int(mNumb[i][j])
+                    mn = int(mNumb[i][j] - 1)
                     if mn >= 0:
                         for k in range(int(kpolij[mn])):  # for (int k = 1; k <= kpolij[mn]; ++k)
                             taupijk[mn][k] = nijk[mn][k] * math.exp(tijk[mn][k] * lntau)
@@ -653,6 +654,11 @@ def PropertiesGERG_numba(T, P, x, ar):
 
 
 def AlpharGERG_numba(T, x, itau, idelta, D):
+    pass
+
+
+@overload(AlpharGERG_numba)
+def AlpharGERG_numba(T, x, itau, idelta, D):
     """
     Private Sub AlpharGERG(itau, idelta, T, D, x, ar)
 
@@ -704,11 +710,16 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
     for i in range(NcGERG):
         if x[i] > epsilon:
             for k in range(int(kpol[i])):
+                test1 = x[i]
+                test2 = delp[int(doik[i][k] - 1)]
+                test3 = taup[i][k]
                 ndt = x[i] * delp[int(doik[i][k] - 1)] * taup[i][k]
                 ndtd = ndt * doik[i][k]
                 ar[0][1] += ndtd
                 ar[0][2] += ndtd * (doik[i][k] - 1)
                 if itau > 0:
+                    #test1 = toik[i][k]
+                    #test2 = ndt
                     ndtt = ndt * toik[i][k]
                     ar[0][0] += ndt
                     ar[1][0] += ndtt
@@ -742,7 +753,7 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
                     if mn >= 0:
                         xijf = x[i] * x[j] * fij[i][j]
                         for k in range(int(kpolij[mn])):  # for (int k = 1; k <= kpolij[mn]; ++k)
-                            ndt = xijf * delp[int(dijk[mn][k])] * taupijk[mn][k]
+                            ndt = xijf * delp[int(dijk[mn][k] - 1)] * taupijk[mn][k]
                             ndtd = ndt * dijk[mn][k]
                             ar[0][1] += ndtd
                             ar[0][2] += ndtd * (dijk[mn][k] - 1)
@@ -756,9 +767,9 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
                                 ar[0][3] += ndtd * (dijk[mn][k] - 1) * (dijk[mn][k] - 2)
 
                         for k in range(int(kpolij[mn]), int(kpolij[mn] + kexpij[mn])):  # for (int k = 1 + kpolij[mn]; k <= kpolij[mn] + kexpij[mn]; ++k)
-                            cij0 = cijk[mn][k] * delp[2]
+                            cij0 = cijk[mn][k] * delp[1]
                             eij0 = eijk[mn][k] * delta
-                            ndt = xijf * nijk[mn][k] * delp[int(dijk[mn][k])] * math.exp(
+                            ndt = xijf * nijk[mn][k] * delp[int(dijk[mn][k] - 1)] * math.exp(
                                 cij0 + eij0 + gijk[mn][k] + tijk[mn][k] * lntau)
                             ex = dijk[mn][k] + 2 * cij0 + eij0
                             ex2 = (ex * ex - dijk[mn][k] + 2 * cij0)
