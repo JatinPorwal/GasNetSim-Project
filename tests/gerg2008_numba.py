@@ -684,11 +684,9 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
     delp = [0] * (7)
     Expd = [0] * (7)
     ar = [[0] * 4 for _ in range(4)]
-
     for i in range(4):
         for j in range(4):
             ar[i][j] = 0
-
     # Set up del, tau, log(tau), and the first 7 calculations for del^i
     Tr, Dr = ReducingParametersGERG_numba(x)
     delta = D / Dr
@@ -710,16 +708,11 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
     for i in range(NcGERG):
         if x[i] > epsilon:
             for k in range(int(kpol[i])):
-                test1 = x[i]
-                test2 = delp[int(doik[i][k] - 1)]
-                test3 = taup[i][k]
                 ndt = x[i] * delp[int(doik[i][k] - 1)] * taup[i][k]
                 ndtd = ndt * doik[i][k]
                 ar[0][1] += ndtd
                 ar[0][2] += ndtd * (doik[i][k] - 1)
                 if itau > 0:
-                    #test1 = toik[i][k]
-                    #test2 = ndt
                     ndtt = ndt * toik[i][k]
                     ar[0][0] += ndt
                     ar[1][0] += ndtt

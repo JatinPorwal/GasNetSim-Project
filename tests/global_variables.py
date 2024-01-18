@@ -1295,7 +1295,7 @@ mNumb[1][3] = 6
 mNumb[3][4] = 10
 mNumb[3][5] = 10
 mNumb[3][6] = 10
-mNumb[4][7] = 10
+mNumb[4][5] = 10
 mNumb[4][6] = 10
 mNumb[5][6] = 10
 

@@ -302,7 +302,7 @@ def test_alphar_gerg():
     # Call the ReducingParametersGERG function
     actual_alphargerg = AlpharGERG_numba(Temp, b, 1, 0, D)
 
-    #assert_almost_equal(actual_alphargerg, expected_alphargerg)
+    assert_almost_equal(actual_alphargerg, expected_alphargerg)
 
 
 def test_PropertiesGERG_numba():
