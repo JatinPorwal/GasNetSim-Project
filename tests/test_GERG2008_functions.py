@@ -25,7 +25,7 @@ from tests.gerg2008_numba import *
 # Test the tanh, sinh, and cosh functions
 def test_tanh_sinh_cosh():
     """
-        Test the hyperbolic tangent (tanh), hyperbolic sine (sinh), and hyperbolic cosine (cosh) functions.
+        Test the numba version of the hyperbolic tangent (tanh), hyperbolic sine (sinh), and hyperbolic cosine (cosh) functions.
     """
     test_cases = [-1.0, 0.0, 1.0]
     for x in test_cases:
@@ -36,7 +36,7 @@ def test_tanh_sinh_cosh():
 
 def test_heating_value():
     """
-        Test the CalculateHeatingValue function of GasMixtureGERG2008 class.
+        Test the numba version of the CalculateHeatingValue function of GasMixtureGERG2008 class.
     """
     # Create the NIST gas mixture dictionary
     nist_gas_mixture = {}
@@ -63,7 +63,7 @@ def test_heating_value():
 
 def test_convert_composition_gerg():
     """
-    Test the ConvertCompositionGERG method of GasMixtureGERG2008 class.
+    Test the numba version of the ConvertCompositionGERG method of GasMixtureGERG2008 class.
     """
     # Create the NIST gas mixture dictionary
     nist_gas_mixture = {}
@@ -91,7 +91,7 @@ def test_convert_composition_gerg():
 
 def test_molarmass_gerg():
     """
-        Test the MolarMassGERG method of GasMixtureGERG2008 class.
+        Test the numba version of the MolarMassGERG method of GasMixtureGERG2008 class.
     """
     # Create the NIST gas mixture dictionary
     nist_gas_mixture = {}
@@ -117,7 +117,7 @@ def test_molarmass_gerg():
 
 def test_pressure_gerg():
     """
-        Test the PressureGERG method of GasMixtureGERG2008 class.
+        Test the numba version of the PressureGERG method of GasMixtureGERG2008 class.
     """
     # Create the NIST gas mixture dictionary
     nist_gas_mixture = {}
@@ -148,7 +148,7 @@ def test_pressure_gerg():
 
 def test_density_gerg():
     """
-        Test the DensityGERG function of GasMixtureGERG2008 class.
+        Test the numba version of the DensityGERG function of GasMixtureGERG2008 class.
     """
     # Create the NIST gas mixture dictionary
     nist_gas_mixture = {}
@@ -182,7 +182,7 @@ def test_density_gerg():
 
 def test_alpha0_gerg():
     """
-        Test the Alpha0GERG() function of GasMixtureGERG2008 class.
+        Test the numba version of the Alpha0GERG() function of GasMixtureGERG2008 class.
     """
     # Create the NIST gas mixture dictionary
     nist_gas_mixture = {}
@@ -215,7 +215,7 @@ def test_alpha0_gerg():
 
 def test_reducing_parameters_gerg():
     """
-        Test the ReducingParametersGERG() function of GasMixtureGERG2008 class.
+        Test the numba version of the ReducingParametersGERG() function of GasMixtureGERG2008 class.
     """
     # Create the NIST gas mixture dictionary
     nist_gas_mixture = {}
@@ -243,7 +243,7 @@ def test_reducing_parameters_gerg():
 
 def test_pseudo_critical_point_gerg():
     """
-            Test the PseudoCriticalPointGERG() function of GasMixtureGERG2008 class.
+            Test the numba version of the PseudoCriticalPointGERG() function of GasMixtureGERG2008 class.
     """
     # Create the NIST gas mixture dictionary
     nist_gas_mixture = {}
@@ -269,7 +269,7 @@ def test_pseudo_critical_point_gerg():
 
 def test_alphar_gerg():
     """
-            Test the AlpharGERG() function of GasMixtureGERG2008 class.
+            Test the numba version of the AlpharGERG() function of GasMixtureGERG2008 class.
     """
     # Create the NIST gas mixture dictionary
     nist_gas_mixture = {}
@@ -305,9 +305,9 @@ def test_alphar_gerg():
     assert_almost_equal(actual_alphargerg, expected_alphargerg)
 
 
-def test_PropertiesGERG_numba():
+def test_PropertiesGERG():
     """
-    Test the PropertiesGERG_numba() function.
+    Test the numba version of the PropertiesGERG_numba() function.
     """
     # Create the NIST gas mixture dictionary
     nist_gas_mixture = {}
