@@ -26,18 +26,20 @@ def speed_heating_value():
 
     # Measure the execution time
     start_time = time.time()
-    expected_heating_value = gas_mixture.CalculateHeatingValue(comp=nist_gas_mixture, hhv=True, parameter="volume")
+    for _ in range(1000):
+        expected_heating_value = gas_mixture.CalculateHeatingValue(comp=nist_gas_mixture, hhv=True, parameter="volume")
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"CalculateHeatingValue took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, CalculateHeatingValue took {function_time:.6f} seconds.")
     molarmass = gas_mixture.MolarMass
     molardensity = gas_mixture.MolarDensity
     # Measure the execution time
     start_time = time.time()
-    calculated_heating_value = CalculateHeatingValue_numba(MolarMass=molarmass, MolarDensity=molardensity, comp=nist_gas_mixture, hhv=True, parameter="volume")
+    for _ in range(1000):
+        calculated_heating_value = CalculateHeatingValue_numba(MolarMass=molarmass, MolarDensity=molardensity, comp=nist_gas_mixture, hhv=True, parameter="volume")
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"CalculateHeatingValue_numba took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, CalculateHeatingValue_numba took {function_time:.6f} seconds.")
 
 
 def speed_convert_composition_gerg():
@@ -62,19 +64,21 @@ def speed_convert_composition_gerg():
     # Test the ConvertCompositionGERG function
     # Measure the execution time
     start_time = time.time()
-    expected_result = gas_mixture.CovertCompositionGERG(nist_gas_mixture)
+    for _ in range(1000):
+        expected_result = gas_mixture.CovertCompositionGERG(nist_gas_mixture)
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"CovertCompositionGERG took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, CovertCompositionGERG took {function_time:.6f} seconds.")
     expected_result.pop(0)
 
     # Calculate the converted composition using ConvertCompositionGERG method
     # Measure the execution time
     start_time = time.time()
-    converted_composition = CovertCompositionGERG_numba(nist_gas_mixture)
+    for _ in range(1000):
+        converted_composition = CovertCompositionGERG_numba(nist_gas_mixture)
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"CovertCompositionGERG_numba took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, CovertCompositionGERG_numba took {function_time:.6f} seconds.")
 
 
 def speed_molarmass_gerg():
@@ -98,18 +102,20 @@ def speed_molarmass_gerg():
     # Calculate the expected molar mass manually based on the given mixture
     # Measure the execution time
     start_time = time.time()
-    expected_molar_mass = gas_mixture.MolarMassGERG()
+    for _ in range(1000):
+        expected_molar_mass = gas_mixture.MolarMassGERG()
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"MolarMassGERG took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, MolarMassGERG took {function_time:.6f} seconds.")
 
     # Get the calculated molar mass from the MolarMassGERG method
     # Measure the execution time
     start_time = time.time()
-    calculated_molar_mass = MolarMassGERG_numba(b)
+    for _ in range(1000):
+        calculated_molar_mass = MolarMassGERG_numba(b)
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"MolarMassGERG_numba took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, MolarMassGERG_numba took {function_time:.6f} seconds.")
 
 
 def speed_pressure_gerg():
@@ -136,19 +142,21 @@ def speed_pressure_gerg():
     # Calculate the expected pressure using an example formula or method
     # Measure the execution time
     start_time = time.time()
-    expected_values = gas_mixture.PressureGERG(d)
+    for _ in range(1000):
+        expected_values = gas_mixture.PressureGERG(d)
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"PressureGERG took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, PressureGERG took {function_time:.6f} seconds.")
     Temp = gas_mixture.T
     AR = np.array(gas_mixture.AlpharGERG(itau=0, idelta=0, D=d))
     # Call the PressureGERG method with the given diameter
     # Measure the execution time
     start_time = time.time()
-    calculated_values = PressureGERG_numba(AR, Temp, d)
+    for _ in range(1000):
+        calculated_values = PressureGERG_numba(AR, Temp, d)
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"PressureGERG_numba took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, PressureGERG_numba took {function_time:.6f} seconds.")
 
 
 def speed_density_gerg():
@@ -175,10 +183,11 @@ def speed_density_gerg():
     # Expected value calculated from the function call
     # Measure the execution time
     start_time = time.time()
-    _, _, expected_values = gas_mixture.DensityGERG()
+    for _ in range(1000):
+        _, _, expected_values = gas_mixture.DensityGERG()
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"DensityGERG took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, DensityGERG took {function_time:.6f} seconds.")
 
     AR = np.array(gas_mixture.AlpharGERG(itau=0, idelta=0, D=d))
     Press = gas_mixture.P
@@ -187,10 +196,11 @@ def speed_density_gerg():
     # Test the DensityGERG function with iFlag=0 (default)
     # Measure the execution time
     start_time = time.time()
-    _, _, calculated_values = DensityGERG_numba(AR, Press, Temp, b, iFlag=0)  # Calling the function without any argument
+    for _ in range(1000):
+        _, _, calculated_values = DensityGERG_numba(AR, Press, Temp, b, iFlag=0)  # Calling the function without any argument
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"DensityGERG_numba took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, DensityGERG_numba took {function_time:.6f} seconds.")
 
 
 def speed_alpha0_gerg():
@@ -217,10 +227,11 @@ def speed_alpha0_gerg():
     # a0(2) - tau^2*partial^2(a0)/partial(tau)^2
     # Measure the execution time
     start_time = time.time()
-    expected_alpha0 = gas_mixture.Alpha0GERG()
+    for _ in range(1000):
+        expected_alpha0 = gas_mixture.Alpha0GERG()
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"Alpha0GERG took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, Alpha0GERG took {function_time:.6f} seconds.")
 
     Temp = gas_mixture.T
     MolarDensity = gas_mixture.MolarDensity
@@ -229,10 +240,11 @@ def speed_alpha0_gerg():
     # Call the Alpha0GERG function
     # Measure the execution time
     start_time = time.time()
-    actual_alpha0 = Alpha0GERG_numba(Temp, MolarDensity, X)
+    for _ in range(1000):
+        actual_alpha0 = Alpha0GERG_numba(Temp, MolarDensity, X)
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"Alpha0GERG_numba took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, Alpha0GERG_numba took {function_time:.6f} seconds.")
 
 
 def speed_reducing_parameters_gerg():
@@ -256,20 +268,22 @@ def speed_reducing_parameters_gerg():
     # Expected value calculated from the function call
     # Measure the execution time
     start_time = time.time()
-    expected_reducingparametersgerg = gas_mixture.ReducingParametersGERG()
+    for _ in range(1000):
+        expected_reducingparametersgerg = gas_mixture.ReducingParametersGERG()
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"ReducingParametersGERG took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, ReducingParametersGERG took {function_time:.6f} seconds.")
 
     # Call the ReducingParametersGERG function
     # Tr - Reducing temperature(K)
     # Dr - Reducing density(mol / l)
     # Measure the execution time
     start_time = time.time()
-    actual_reducingparametersgerg = ReducingParametersGERG_numba(b)
+    for _ in range(1000):
+        actual_reducingparametersgerg = ReducingParametersGERG_numba(b)
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"ReducingParametersGERG_numba took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, ReducingParametersGERG_numba took {function_time:.6f} seconds.")
 
 
 def speed_pseudo_critical_point_gerg():
@@ -293,18 +307,20 @@ def speed_pseudo_critical_point_gerg():
     # Expected value calculated from the function call
     # Measure the execution time
     start_time = time.time()
-    expected_pseudocriticalpointgerg = gas_mixture.PseudoCriticalPointGERG()
+    for _ in range(1000):
+        expected_pseudocriticalpointgerg = gas_mixture.PseudoCriticalPointGERG()
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"PseudoCriticalPointGERG took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, PseudoCriticalPointGERG took {function_time:.6f} seconds.")
 
     # Call the ReducingParametersGERG function
     # Measure the execution time
     start_time = time.time()
-    actual_pseudocriticalpointgerg = PseudoCriticalPointGERG_numba(b)
+    for _ in range(1000):
+        actual_pseudocriticalpointgerg = PseudoCriticalPointGERG_numba(b)
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"PseudoCriticalPointGERG_numba took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, PseudoCriticalPointGERG_numba took {function_time:.6f} seconds.")
 
 
 def speed_alphar_gerg():
@@ -337,20 +353,22 @@ def speed_alphar_gerg():
     D = 15.03402741629294
     # Measure the execution time
     start_time = time.time()
-    expected_alphargerg = gas_mixture.AlpharGERG(1, 0, D)
+    for _ in range(1000):
+        expected_alphargerg = gas_mixture.AlpharGERG(1, 0, D)
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"AlpharGERG took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, AlpharGERG took {function_time:.6f} seconds.")
 
     Temp = gas_mixture.T
 
     # Call the ReducingParametersGERG function
     # Measure the execution time
     start_time = time.time()
-    actual_alphargerg = AlpharGERG_numba(Temp, b, 1, 0, D)
+    for _ in range(1000):
+        actual_alphargerg = AlpharGERG_numba(Temp, b, 1, 0, D)
     end_time = time.time()
     function_time = end_time - start_time
-    print(f"AlpharGERG_numba took {function_time:.6f} seconds.")
+    print(f"For 100 iterations, AlpharGERG_numba took {function_time:.6f} seconds.")
 
 
 def main():
