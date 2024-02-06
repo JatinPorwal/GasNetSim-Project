@@ -102,6 +102,7 @@ import math
 from collections import Counter
 from .setup import *
 from copy import deepcopy
+from scipy.constants import atm
 
 from GasNetSim.components.utils.gas_mixture.GERG2008.setup import *
 
@@ -180,7 +181,9 @@ class GasMixtureGERG2008:
 
         self.PropertiesGERG()
 
-        self.HHV = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="volume")
+        self.HHV_J_per_m3 = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="volume")
+        self.HHV_J_per_sm3 = self.HHV_J_per_m3 / self.P / 1000 * atm / 288.15 * self.T
+        self.HHV_J_per_kg = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="mass")
 
     def CalculateHeatingValue(self, comp, hhv, parameter):
 
@@ -321,17 +324,17 @@ class GasMixtureGERG2008:
         HHV = LHV + (hw_gas - hw_liq) * products_dict["water"]
 
         if parameter == 'mass':
-            # returns heating value in MJ/kg
+            # returns heating value in J/kg
             if hhv:
                 heating_value = HHV / self.MolarMass * 1e3
             else:
                 heating_value = LHV / self.MolarMass * 1e3
         else:
-            # returns heating value in kJ/m3
+            # returns heating value in J/m3
             if hhv:
-                heating_value = HHV * self.MolarDensity
+                heating_value = HHV * self.MolarDensity * 1e3
             else:
-                heating_value = LHV * self.MolarDensity
+                heating_value = LHV * self.MolarDensity * 1e3
 
         return heating_value
 
