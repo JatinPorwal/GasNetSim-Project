@@ -58,7 +58,10 @@ class Pipeline:
         self.friction_factor_method = friction_factor_method
 
     def update_gas_mixture(self):
-        self.gas_mixture = self.inlet.gas_mixture
+        if self.flow_rate >= 0:
+            self.gas_mixture = self.inlet.gas_mixture
+        else:
+            self.gas_mixture = self.outlet.gas_mixture
 
     def calc_average_temperature(self):
         """
@@ -330,7 +333,10 @@ class Resistance:
         self.gas_mixture = self.inlet.gas_mixture
 
     def update_gas_mixture(self):
-        self.gas_mixture = self.inlet.gas_mixture
+        if self.flow_rate >= 0:
+            self.gas_mixture = self.inlet.gas_mixture
+        else:
+            self.gas_mixture = self.outlet.gas_mixture
 
     def calc_pipe_slope_correction(self):
         return 0
@@ -426,7 +432,10 @@ class LinearResistance:
         self.gas_mixture = self.inlet.gas_mixture
 
     def update_gas_mixture(self):
-        self.gas_mixture = self.inlet.gas_mixture
+        if self.flow_rate >= 0:
+            self.gas_mixture = self.inlet.gas_mixture
+        else:
+            self.gas_mixture = self.outlet.gas_mixture
 
     def calc_pipe_slope_correction(self):
         return 0
@@ -514,7 +523,10 @@ class ShortPipe:
         self.gas_mixture = self.inlet.gas_mixture
 
     def update_gas_mixture(self):
-        self.gas_mixture = self.inlet.gas_mixture
+        if self.flow_rate >= 0:
+            self.gas_mixture = self.inlet.gas_mixture
+        else:
+            self.gas_mixture = self.outlet.gas_mixture
 
     def calc_pipe_slope_correction(self):
         return 0
