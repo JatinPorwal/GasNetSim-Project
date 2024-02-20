@@ -13,15 +13,26 @@ from scipy import sparse
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from timeit import default_timer as timer
+
+try:
+    import cupy as cp
+    import cupy.sparse.linalg as cpsplinalg
+except ImportError:
+    # logging.warning(f"CuPy is not installed or not available!")
+    print(f"CuPy is not installed or not available!")
+
+from .cuda_support import create_matrix_of_zeros
 
 
-def create_connection_matrix(n_nodes: int, components: dict, component_type: int, sparse_matrix: bool = False):
+def create_connection_matrix(n_nodes: int, components: dict, component_type: int,
+                             use_cuda=False, sparse_matrix: bool = False):
     row_ind = list()
     col_ind = list()
     data = list()
 
     if not sparse_matrix:
-        cnx = np.zeros((n_nodes, n_nodes))
+        cnx = create_matrix_of_zeros(n_nodes, use_cuda=use_cuda, sparse_matrix=sparse_matrix)
 
     for comp in components.values():
         i = comp.inlet_index - 1
@@ -43,11 +54,15 @@ def levenberg_marquardt_damping_factor(m, s, b):
     return 10 ** (m * math.log10(s + b))
 
 
-def delete_matrix_rows_and_columns(matrix, to_remove):
+def delete_matrix_rows_and_columns(matrix, to_remove, use_cuda=False):
     new_matrix = matrix
 
-    new_matrix = np.delete(new_matrix, to_remove, 0)  # delete rows
-    new_matrix = np.delete(new_matrix, to_remove, 1)  # delete columns
+    if use_cuda:
+        new_matrix = cp.delete(new_matrix, to_remove, 0)  # delete rows
+        new_matrix = cp.delete(new_matrix, to_remove, 1)  # delete columns
+    else:
+        new_matrix = np.delete(new_matrix, to_remove, 0)  # delete rows
+        new_matrix = np.delete(new_matrix, to_remove, 1)  # delete columns
 
     return new_matrix
 
@@ -62,14 +77,23 @@ def print_n_largest_absolute_values(n, values):
     return None
 
 
-def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_matrix):
-    nodal_total_inflow = np.sum(np.where(flow_matrix > 0, flow_matrix, 0), axis=1)
+def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_matrix, use_cuda=False):
+    if use_cuda:
+        nodal_total_inflow = cp.sum(cp.where(flow_matrix > 0, flow_matrix, 0), axis=1)
+    else:
+        nodal_total_inflow = np.sum(np.where(flow_matrix > 0, flow_matrix, 0), axis=1)
 
     nodal_gas_inflow_composition = dict()
     nodal_gas_inflow_temperature = dict()
 
     for i_node, node in nodes.items():  # iterate over all nodes
-        inflow_from_node = np.where(flow_matrix[i_node-1] > 0)[0]  # find the supplying nodes
+        if use_cuda:
+            inflow_from_node = cp.where(flow_matrix[i_node - 1] > 0)[0]  # find the supplying nodes
+        else:
+            inflow_from_node = np.where(flow_matrix[i_node-1] > 0)[0]  # find the supplying nodes
+
+        # TODO: check inflow nodes
+
         if len(inflow_from_node) == 0:
             pass
         else:
@@ -80,6 +104,8 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_
         total_inflow_temperature_times_flow_rate = 0
 
         for inlet_index in inflow_from_node:
+            if type(inlet_index) is not int:
+                inlet_index = inlet_index.item()
             gas_composition = nodes[inlet_index].gas_mixture.composition
             connections[mapping_connections[i_node - 1][inlet_index - 1]].gas_mixture.composition = gas_composition
             inflow_rate = flow_matrix[i_node-1][inlet_index-1]
