@@ -4,22 +4,22 @@ from tests.global_variables import *
 #from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
 
 
-@njit(float64(float64))
+@njit(float64(float64), fastmath=True)
 def Tanh_numba(xx):
     return (math.exp(xx) - math.exp(-xx)) / (math.exp(xx) + math.exp(-xx))
 
 
-@njit(float64(float64))
+@njit(float64(float64), fastmath=True)
 def Sinh_numba(xx):
     return (math.exp(xx) - math.exp(-xx)) / 2
 
 
-@njit(float64(float64))
+@njit(float64(float64), fastmath=True)
 def Cosh_numba(xx):
     return (math.exp(xx) + math.exp(-xx)) / 2
 
 
-@njit(float64(float64[:]))
+@njit(float64(float64[:]), fastmath=True)
 def MolarMassGERG_numba(x):
     """
         Calculate the molar mass of a gas mixture using GERG-2008 reference equation.
@@ -34,8 +34,8 @@ def MolarMassGERG_numba(x):
                 mm: Molar mass (g/mol)
     """
     Mm = 0.0
-    for ii in range(NcGERG):
-        Mm += x[ii] * MMiGERG[ii]
+    for _i in range(NcGERG):
+        Mm += x[_i] * MMiGERG[_i]
     return Mm
 
 
@@ -58,9 +58,9 @@ def PseudoCriticalPointGERG_numba(x):
     Tcx = 0
     Dcx = 0
 
-    for ii in range(NcGERG):
-        Tcx = Tcx + x[ii] * Tc[ii]
-        Vcx = Vcx + x[ii] / Dc[ii]
+    for _i in range(NcGERG):
+        Tcx = Tcx + x[_i] * Tc[_i]
+        Vcx = Vcx + x[_i] / Dc[_i]
 
     if Vcx > epsilon:
         Dcx = 1 / Vcx
@@ -68,6 +68,7 @@ def PseudoCriticalPointGERG_numba(x):
     return Tcx, Dcx
 
 
+@njit
 def ReducingParametersGERG_numba(x):
     """
         Function to calculate reducing parameters in GERG equation of state.
@@ -82,12 +83,12 @@ def ReducingParametersGERG_numba(x):
             Tr : Reduced temperature
             Dr : Reduced density
     """
-    global xold, Trold, Drold
+    # global xold, Trold, Drold
     Tr, Dr = ReducingParametersGERG_numba_sub(x)
-    for i in range(NcGERG):
-        xold[i] = x[i]
-    Trold = Tr
-    Drold = Dr
+    # for i in range(NcGERG):
+    #     xold[i] = x[i]
+    # Trold = Tr
+    # Drold = Dr
     return Tr, Dr
 
 
@@ -108,17 +109,17 @@ def ReducingParametersGERG_numba_sub(x):
             Dr : Reduced density
     """
 
-    icheck = 0
-    for i in range(NcGERG):
-        if abs(x[i] - xold[i]) > 0.0000001:
-            icheck = 1
+    # icheck = 0
+    # for i in range(NcGERG):
+    #     if abs(x[i] - xold[i]) > 0.0000001:
+    #         icheck = 1
+    #
+    # if icheck == 0:
+    #     return Trold, Drold
 
-    if icheck == 0:
-        return Trold, Drold
-
-    Dr = 0
-    Vr = 0
-    Tr = 0
+    Dr = 0.
+    Vr = 0.
+    Tr = 0.
     for i in range(NcGERG):
         if x[i] > epsilon:
             F = 1
@@ -653,11 +654,12 @@ def PropertiesGERG_numba(T, P, x, ar):
             W, G, JT / 1e3, Kappa, molar_mass * P / Z /RT, molar_mass / air_molar_mass, R / molar_mass)
 
 
-def AlpharGERG_numba(T, x, itau, idelta, D):
-    pass
+# def AlpharGERG_numba(T, x, itau, idelta, D):
+#     pass
 
 
-@overload(AlpharGERG_numba)
+# @overload(AlpharGERG_numba)
+@njit(fastmath=True)
 def AlpharGERG_numba(T, x, itau, idelta, D):
     """
     Private Sub AlpharGERG(itau, idelta, T, D, x, ar)
@@ -678,9 +680,9 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
                     ar(2,0) -     tau^2*partial^2(ar)/partial(tau)^2
     """
 
-    global Told, Trold, Trold2, Drold
-
-    global Tr, Dr
+    # global Told, Trold, Trold2, Drold
+    #
+    # global Tr, Dr
     delp = [0] * (7)
     Expd = [0] * (7)
     ar = [[0] * 4 for _ in range(4)]
@@ -698,11 +700,11 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
         delp[i] = delp[i - 1] * delta
         Expd[i] = math.exp(-delp[i])
 
-    # If temperature has changed, calculate temperature dependent parts
-    if (abs(T - Told) > 0.0000001) or (abs(Tr - Trold2) > 0.0000001):
-        tTermsGERG_numba(lntau, x)
-    Told = T
-    Trold2 = Tr
+    # # If temperature has changed, calculate temperature dependent parts
+    # if (abs(T - Told) > 0.0000001) or (abs(Tr - Trold2) > 0.0000001):
+    #     tTermsGERG_numba(lntau, x)
+    # Told = T
+    # Trold2 = Tr
 
     # Calculate pure fluid contributions
     for i in range(NcGERG):
