@@ -1,7 +1,14 @@
-import pandas as pd
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 2/22/24, 5:42 PM
+#     Last change by yifei
+#    *****************************************************************************
+
 from scipy.constants import bar
-from numpy.testing import assert_almost_equal, assert_allclose
-from tests.gerg2008_numba import *
+from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008_numba import *
 from timeit import default_timer as timer
 from numba import prange
 from concurrent.futures import ProcessPoolExecutor

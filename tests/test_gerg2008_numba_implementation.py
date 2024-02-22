@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/22/24, 4:56 PM
+#     Last change on 2/22/24, 5:42 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -12,7 +12,6 @@
 # within the GasNetSim components. The tests primarily focus on the GasMixtureGERG2008 class found in the gas_mixture
 # module of GasNetSim. These tests aim to ensure accurate and reliable performance of critical methods related to gas
 # mixture properties and calculations.
-import numpy as np
 
 # The script includes test cases for various functions within the GasMixtureGERG2008 class, such as the hyperbolic
 # tangent, hyperbolic sine, and hyperbolic cosine functions, as well as methods like CalculateHeatingValue,
@@ -23,12 +22,11 @@ import numpy as np
 # like heating value, molar mass, pressure, density, ideal gas Helmholtz energy, reducing parameters,
 # pseudo-critical point, and residual Helmholtz energy.
 # **********************************************************************************************************************
-
-
-from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
 from scipy.constants import bar
 from numpy.testing import assert_almost_equal, assert_allclose
-from tests.gerg2008_numba import *
+
+from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
+from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008_numba import *
 
 
 # Test the tanh, sinh, and cosh functions

@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/22/24, 4:31 PM
+#     Last change on 2/22/24, 5:42 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -26,7 +26,7 @@
 from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
 from scipy.constants import bar
 from numpy.testing import assert_almost_equal, assert_allclose
-from tests.gerg2008_numba import *
+from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008_numba import *
 
 
 def test_heating_value_100iter():
