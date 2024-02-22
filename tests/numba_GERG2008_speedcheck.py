@@ -389,8 +389,10 @@ def speed_alphar_gerg(repeats=10000):
 if __name__ == "__main__":
     print("Running speed tests...\n")
 
+    repeats = 10000
+
     # Speed test for CalculateHeatingValue function
-    speed_heating_value(repeats=1000)
+    speed_heating_value(repeats=repeats)
     #
     # # Speed test for ConvertCompositionGERG method
     # speed_convert_composition_gerg()
@@ -431,4 +433,4 @@ if __name__ == "__main__":
     # print(f"For 10000 iterations, AlpharGERG_numba took {(end-start):.6f} seconds.")
 
     # Speed test for AlpharGERG function
-    speed_alphar_gerg(repeats=1000)
+    speed_alphar_gerg(repeats=repeats)

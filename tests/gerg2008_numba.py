@@ -1,4 +1,12 @@
-from numba import njit, float64, types, int64
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 2/22/24, 2:27 PM
+#     Last change by yifei
+#    *****************************************************************************
+from numba import njit, float64, types, int32
 from numba.extending import overload
 from tests.global_variables import *
 #from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
@@ -368,6 +376,7 @@ def Alpha0GERG_numba(Temp, MolarDensity, X):
     return a0
 
 
+@njit
 def tTermsGERG_numba(lntau, x):
     """
         Private Sub tTermsGERG(lntau, x)
@@ -378,12 +387,12 @@ def tTermsGERG_numba(lntau, x):
         return:
             null
     """
-    global taup, taupijk
-    taup, taupijk = tTermsGERG_numba_sub(taup, taupijk, lntau, x)
-
+    # global taup, taupijk
+    taup, taupijk = tTermsGERG_numba_sub(lntau, x)
+    return taup, taupijk
 
 @njit
-def tTermsGERG_numba_sub(taup, taupijk, lntau, x):
+def tTermsGERG_numba_sub(lntau, x):
     """
         Calculate temperature-dependent parts of the GERG-2008 equation of state.
 
@@ -398,6 +407,8 @@ def tTermsGERG_numba_sub(taup, taupijk, lntau, x):
             taupijk : Updated taupijk values.
     """
     taup0 = np.zeros(12)
+    taup = np.zeros((MaxFlds, MaxTrmP))
+    taupijk = np.zeros((MaxFlds, MaxTrmM))
 
     i = 4  # Use propane to get exponents for short form of EOS
     for k in range(int(kpol[i] + kexp[i])):  # for (int k = 1; k <= kpol[i] + kexp[i]; ++k)
@@ -659,7 +670,7 @@ def PropertiesGERG_numba(T, P, x, ar):
 
 
 # @overload(AlpharGERG_numba)
-@njit(fastmath=True)
+@njit(float64[:, :](float64, float64[:], int32, int32, float64), fastmath=True)
 def AlpharGERG_numba(T, x, itau, idelta, D):
     """
     Private Sub AlpharGERG(itau, idelta, T, D, x, ar)
@@ -683,12 +694,14 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
     # global Told, Trold, Trold2, Drold
     #
     # global Tr, Dr
-    delp = [0] * (7)
-    Expd = [0] * (7)
-    ar = [[0] * 4 for _ in range(4)]
-    for i in range(4):
-        for j in range(4):
-            ar[i][j] = 0
+    # global taup, taupijk
+    # global doik, toik, kpol, kexp, coik, mNumb, fij, kpolij, dijk, tijk, kexpij, cijk, eijk, nijk, gijk
+    delp = np.zeros(7, dtype=np.float64)
+    Expd = np.zeros(7, dtype=np.float64)
+    ar = np.zeros((4, 4), dtype=np.float64)
+    # for i in range(4):
+    #     for j in range(4):
+    #         ar[i][j] = 0.
     # Set up del, tau, log(tau), and the first 7 calculations for del^i
     Tr, Dr = ReducingParametersGERG_numba(x)
     delta = D / Dr
@@ -705,6 +718,8 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
     #     tTermsGERG_numba(lntau, x)
     # Told = T
     # Trold2 = Tr
+
+    taup, taupijk = tTermsGERG_numba(lntau, x)
 
     # Calculate pure fluid contributions
     for i in range(NcGERG):

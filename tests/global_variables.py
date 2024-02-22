@@ -44,8 +44,8 @@ gvij = np.zeros((MaxFlds, MaxFlds))
 fij = np.zeros((MaxFlds, MaxFlds))
 th0i = np.zeros((MaxFlds, 7))
 n0i = np.zeros((MaxFlds, 7))
-taup = np.zeros((MaxFlds, MaxTrmP))
-taupijk = np.zeros((MaxFlds, MaxTrmM))
+# taup = np.zeros((MaxFlds, MaxTrmP))
+# taupijk = np.zeros((MaxFlds, MaxTrmM))
 # Calculated in the PressureGERG subroutine, but not included as an argument since
 # it is only used internally in the density algorithm.
 # dPdDsave = 0
