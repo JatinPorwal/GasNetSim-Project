@@ -1,3 +1,12 @@
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 2/22/24, 4:56 PM
+#     Last change by yifei
+#    *****************************************************************************
+
 # **********************************************************************************************************************
 # This script contains a comprehensive set of unit tests designed to validate the functionalities and calculations
 # within the GasNetSim components. The tests primarily focus on the GasMixtureGERG2008 class found in the gas_mixture
@@ -46,8 +55,8 @@ def test_heating_value():
          'helium', 'argon']
     b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
          0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
-    for ii in range(21):
-        nist_gas_mixture[a[ii]] = b[ii]
+    for _i in range(21):
+        nist_gas_mixture[a[_i]] = b[_i]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
     gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
@@ -142,7 +151,7 @@ def test_pressure_gerg():
     Temp = gas_mixture.T
     AR = np.array(gas_mixture.AlpharGERG(itau=0, idelta=0, D=d))
     # Call the PressureGERG method with the given diameter
-    calculated_values = PressureGERG_numba(AR, Temp, d)
+    calculated_values = PressureGERG_numba(Temp, d, b)
     assert_almost_equal(expected_values, calculated_values)
 
 
@@ -171,12 +180,12 @@ def test_density_gerg():
     #expected_values = gas_mixture.PressureGERG(d)
     _, _, expected_values = gas_mixture.DensityGERG()
 
-    AR = np.array(gas_mixture.AlpharGERG(itau=0, idelta=0, D=d))
+    # AR = np.array(gas_mixture.AlpharGERG(itau=0, idelta=0, D=d))
     Press = gas_mixture.P
     Temp = gas_mixture.T
 
     # Test the DensityGERG function with iFlag=0 (default)
-    _, _,calculated_values = DensityGERG_numba(AR, Press, Temp, b, iFlag=0)  # Calling the function without any argument
+    _, _,calculated_values = DensityGERG_numba(Press, Temp, b, iFlag=0)  # Calling the function without any argument
     assert_allclose(expected_values, calculated_values)
 
 
@@ -345,9 +354,7 @@ def test_PropertiesGERG():
                                 gas_mixture.SG,
                                 gas_mixture.R_specific]
 
-    d = gas_mixture.MolarDensity
-    AR = np.array(gas_mixture.AlpharGERG(itau=1, idelta=0, D=d))
     # Call the PropertiesGERG function
-    calculated_PropertiesGERG = PropertiesGERG_numba(gas_mixture.T, gas_mixture.P, b, AR)
+    calculated_PropertiesGERG = PropertiesGERG_numba(gas_mixture.T, gas_mixture.P, b)
 
     assert_allclose(expected_PropertiesGERG, calculated_PropertiesGERG)

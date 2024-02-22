@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/22/24, 2:27 PM
+#     Last change on 2/22/24, 5:15 PM
 #     Last change by yifei
 #    *****************************************************************************
 from numba import njit, float64, types, int32
@@ -434,241 +434,6 @@ def tTermsGERG_numba_sub(lntau, x):
     return taup, taupijk
 
 
-@njit(types.UniTuple(float64, 3)(float64[:, :], float64, float64))
-def PressureGERG_numba(ar, T, D):
-    """
-    Sub PressureGERG(T, D, x, P, Z)
-
-    Calculate pressure as a function of temperature and density.  The derivative d(P)/d(D) is also calculated
-    for use in the iterative DensityGERG subroutine (and is only returned as a common variable).
-
-    Inputs:
-        ar: Dimensionless residual Helmholtz energy and its derivatives with respect to tau and delta.
-        T: Temperature (K)
-        D: Density (mol/l)
-
-    return:
-        P:        Pressure (kPa)
-        Z:        Compressibility factor
-        dPdDsave: d(P)/d(D) [kPa/(mol/l)] (at constant temperature)
-                  This variable is cached in the common variables for use in the iterative density solver, but not returned as an argument.
-    """
-    #ar = AlpharGERG_numba(itau=0, idelta=0, D=D)
-
-    Z = 1 + ar[0][1]
-    P = D * RGERG * T * Z
-    dPdDsave = RGERG * T * (1 + 2 * ar[0][1] + ar[0][2])
-    return P, Z, dPdDsave
-
-
-#@njit(types.Tuple((float64, types.unicode_type, float64))(float64[:, :], float64, float64, float64[:], int64))
-# Tha above did not work since there is an empty return happening.
-@njit
-def DensityGERG_numba(ar, P, T, x, iFlag=0):
-    """
-    Sub DensityGERG(iFlag, T, P, x, D, ierr, herr)
-
-    Calculate density as a function of temperature and pressure.  This is an iterative routine that calls PressureGERG
-    to find the correct state point.  Generally only 6 iterations at most are required.
-    If the iteration fails to converge, the ideal gas density and an error message are returned.
-    No checks are made to determine the phase boundary, which would have guaranteed that the output is in the gas phase (or liquid phase when iFlag=2).
-    It is up to the user to locate the phase boundary, and thus identify the phase of the T and P inputs.
-    If the state point is 2-phase, the output density will represent a metastable state.
-
-                    (An initial guess for the density can be sent in D as the negative of the guess for roots that are in the liquid phase instead of using iFlag=2)
-    Inputs:
-        ar:      Dimensionless residual Helmholtz energy and its derivatives with respect to tau and delta.
-        T:       Temperature (K)
-        P:       Pressure (kPa)
-        x :      Composition (mole fraction) of the components.
-        iFlag:   Set to 0 for strict pressure solver in the gas phase without checks (fastest mode, but output state may not be stable single phase)
-                 Set to 1 to make checks for possible 2-phase states (result may still not be stable single phase, but many unstable states will be identified)
-                 Set to 2 to search for liquid phase (and make the same checks when iFlag=1)
-
-    return:
-        D:       Density (mol/l)
-                 For the liquid phase, an initial value can be sent to the routine to avoid
-                 a solution in the metastable or gas phases.
-                 The initial value should be sent as a negative number.
-        ierr:    Error number (0 indicates no error)
-        herr:    Error message if ierr is not equal to zero
-    """
-
-    D = 0  # initial estimate of the density
-
-    dPdD = 0.0
-    d2PdTD = 0.0
-    Cv = 0.0
-    Cp = 0.0
-    W = 0.0
-    PP = 0.0
-
-    ierr = 0
-    herr = ""
-    nFail = 0
-    iFail = 0
-    if P < epsilon:
-        D = 0
-        return
-    tolr = 0.0000001
-    Tcx, Dcx = PseudoCriticalPointGERG_numba(x)
-
-    if D > - epsilon:
-        D = P / RGERG / T                # Ideal gas estimate for vapor phase
-        if iFlag == 2:
-            D = Dcx*3    # Initial estimate for liquid phase
-
-    else:
-        D = abs(D)                  # If D<0, then use as initial estimate
-
-    plog = math.log(P)
-    vlog = -math.log(D)
-    for it in range(1, 51):
-        if (vlog < -7) or (vlog > 100) or (it == 20) or (it == 30) or (it == 40) or (iFail == 1):
-            # Current state is bad or iteration is taking too long.  Restart with completely different initial state
-            iFail = 0
-            if nFail > 2:
-                # Iteration failed (above loop did not find a solution or checks made below indicate possible 2-phase state)
-                ierr = 1
-                herr = "Calculation failed to converge in GERG method, ideal gas density returned."
-                D = P / RGERG / T
-            nFail += 1
-            if nFail == 1:
-                D = Dcx * 3  # If vapor phase search fails, look for root in liquid region
-            elif nFail == 2:
-                D = Dcx * 2.5  # If liquid phase search fails, look for root between liquid and critical regions
-            elif nFail == 3:
-                D = Dcx * 2  # If search fails, look for root in critical region
-
-            vlog = -math.log(D)
-        D = math.exp(-vlog)
-        P2, Z, dPdDsave = PressureGERG_numba(ar, T, D)
-        if (dPdDsave < epsilon) or (P2 < epsilon):
-            # Current state is 2-phase, try locating a different state that is single phase
-            vinc = 0.1
-            if D > Dcx:
-                vinc = -0.1
-            if it > 5:
-                vinc = vinc / 2
-            if (it > 10) and (it < 20):
-                vinc = vinc / 5
-            vlog += vinc
-        else:
-            # Find the next density with a first order Newton's type iterative scheme, with
-            # log(P) as the known variable and log(v) as the unknown property.
-            # See AGA 8 publication for further information.
-            dpdlv = -D * dPdDsave     # d(p)/d[log(v)]
-            vdiff = (math.log(P2) - plog) * P2 / dpdlv
-            vlog += - vdiff
-            if abs(vdiff) < tolr:
-                # Check to see if state is possibly 2-phase, and if so restart
-                if dPdDsave < 0:
-                    iFail = 1
-                else:
-                    D = math.exp(-vlog)
-
-                    # If requested, check to see if point is possibly 2-phase
-                    if iFlag > 0:
-                        #PropertiesGERG_numba()
-                        if ((PP <= 0) or (dPdD <= 0) or (d2PdTD <= 0)) or ((Cv <= 0) or (Cp <= 0) or (W <= 0)):
-                            # Iteration failed (above loop did find a solution or checks made below indicate possible 2-phase state)
-                            ierr = 1
-                            herr = "Calculation failed to converge in GERG method, ideal gas density returned."
-                            D = P / RGERG / T
-                        return ierr, herr, D
-                    return ierr, herr, D              # Iteration converged
-    # Iteration failed (above loop did not find a solution or checks made below indicate possible 2-phase state)
-    ierr = 1
-    herr = "Calculation failed to converge in GERG method, ideal gas density returned."
-    D = P / RGERG / T
-    return ierr, herr, D
-
-
-@njit(types.UniTuple(float64, 20)(float64, float64, float64[:], float64[:, :]))
-def PropertiesGERG_numba(T, P, x, ar):
-    """
-    Sub PropertiesGERG(T, D, x, P, Z, dPdD, d2PdD2, d2PdTD, dPdT, U, H, S, Cv, Cp, W, G, JT, Kappa, A)
-
-    Calculate thermodynamic properties as a function of temperature and density.  Calls are made to the subroutines
-    ReducingParametersGERG, IdealGERG, and ResidualGERG.  If the density is not known, call subroutine DENSITY first
-    with the known values of pressure and temperature.
-
-    Inputs:
-        T:      Temperature (K)
-        P:      Pressure (kPa)
-        x:      Composition (mole fraction)
-        ar:     Dimensionless residual Helmholtz energy and its derivatives with respect to tau and delta.
-
-    Returns:
-        Tuple of thermodynamic properties:
-            molar_mass:        Molar mass (g/mol)
-            D:                 Density (mol/l)
-            Z:                 Compressibility factor
-            dPdD:              First derivative of pressure with respect to density at constant temperature [kPa/(mol/l)]
-            d2PdD2:            Second derivative of pressure with respect to density at constant temperature [kPa/(mol/l)^2]
-            dPdT:              First derivative of pressure with respect to temperature at constant density (kPa/K)
-            U:                 Internal energy (J/mol)
-            H:                 Enthalpy (J/mol)
-            S:                 Entropy [J/(mol-K)]
-            Cv:                Isochoric heat capacity [J/(mol-K)]
-            Cp:                Isobaric heat capacity [J/(mol-K)]
-            Cv_molar:           Specific heat capacity at constant volume [J/(kg-K)]
-            Cp_molar:           Specific heat capacity at constant pressure [J/(kg-K)]
-            W:                 Speed of sound (m/s)
-            G:                 Gibbs energy (J/mol)
-            JT:                Joule-Thomson coefficient (K/Pa)
-            Kappa:             Isentropic exponent
-            Vm:                Molar volume (m^3/mol)
-            molar_mass_ratio:  Ratio of molar mass to air molar mass
-            R_specific:        Specific gas constant [J/(kg-K)]
-    """
-    # Calculate molar mass
-    molar_mass = MolarMassGERG_numba(x)
-
-    # Calculate the density
-    ierr, herr, D = DensityGERG_numba(ar, P, T, x, iFlag=0)
-    MolarDensity = D
-
-    # Calculate the ideal gas Helmholtz energy, and its first and second derivatives with respect to temperature.
-    a0 = Alpha0GERG_numba(T, D, x)
-    # Calculate the real gas Helmholtz energy, and its derivatives with respect to temperature and/or density.
-    #ar = self.AlpharGERG(itau=1, idelta=0, D=D)
-
-    R = RGERG
-    RT = R * T
-    Z = 1 + ar[0][1]
-    P = D * RT * Z
-    dPdD = RT * (1 + 2 * ar[0][1] + ar[0][2])
-    dPdT = D * R * (1 + ar[0][1] - ar[1][1])
-    d2PdTD = R * (1 + 2 * ar[0][1] + ar[0][2] - 2 * ar[1][1] - ar[1][2])
-    A = RT * (a0[0] + ar[0][0])
-    G = RT * (1 + ar[0][1] + a0[0] + ar[0][0])
-    U = RT * (a0[1] + ar[1][0])
-    H = RT * (1 + ar[0][1] + a0[1] + ar[1][0])
-    S = R * (a0[1] + ar[1][0] - a0[0] - ar[0][0])
-    Cv = -R * (a0[2] + ar[2][0])
-    if D > epsilon:
-        Cp = Cv + T * (dPdT / D) * (dPdT / D) / dPdD
-        d2PdD2 = RT * (2 * ar[0][1] + 4 * ar[0][2] + ar[0][3]) / D
-        JT = (T / D * dPdT / dPdD - 1) / Cp / D  #  '=(dB/dT*T-B)/Cp for an ideal gas, but dB/dT is not known
-    else:
-        Cp = Cv + R
-        d2PdD2 = 0
-        JT = 1E+20
-    W = 1000 * Cp / Cv * dPdD / molar_mass
-    if W < 0:
-        W = 0
-    W = math.sqrt(W)
-    Kappa = pow(W, 2) * molar_mass / (RT * 1000 * Z)
-
-    return (molar_mass, D, Z, dPdD, d2PdD2, dPdT, U, H, S, Cv, Cp, Cv * 1000 / molar_mass, Cp * 1000 / molar_mass,
-            W, G, JT / 1e3, Kappa, molar_mass * P / Z /RT, molar_mass / air_molar_mass, R / molar_mass)
-
-
-# def AlpharGERG_numba(T, x, itau, idelta, D):
-#     pass
-
-
 # @overload(AlpharGERG_numba)
 @njit(float64[:, :](float64, float64[:], int32, int32, float64), fastmath=True)
 def AlpharGERG_numba(T, x, itau, idelta, D):
@@ -794,3 +559,238 @@ def AlpharGERG_numba(T, x, itau, idelta, D):
                                 ar[1][2] += ndtt * ex2
                                 ar[0][3] += ndt * (ex * (ex2 - 2 * (dijk[mn][k] - 2 * cij0)) + 2 * dijk[mn][k])
     return ar
+
+
+@njit(types.UniTuple(float64, 3)(float64, float64, float64[:]))
+def PressureGERG_numba(T, D, x):
+    """
+    Sub PressureGERG(T, D, x, P, Z)
+
+    Calculate pressure as a function of temperature and density.  The derivative d(P)/d(D) is also calculated
+    for use in the iterative DensityGERG subroutine (and is only returned as a common variable).
+
+    Inputs:
+        ar: Dimensionless residual Helmholtz energy and its derivatives with respect to tau and delta.
+        T: Temperature (K)
+        D: Density (mol/l)
+
+    return:
+        P:        Pressure (kPa)
+        Z:        Compressibility factor
+        dPdDsave: d(P)/d(D) [kPa/(mol/l)] (at constant temperature)
+                  This variable is cached in the common variables for use in the iterative density solver, but not returned as an argument.
+    """
+    ar = AlpharGERG_numba(T=T, x=x, itau=0, idelta=0, D=D)
+
+    Z = 1 + ar[0][1]
+    P = D * RGERG * T * Z
+    dPdDsave = RGERG * T * (1 + 2 * ar[0][1] + ar[0][2])
+    return P, Z, dPdDsave
+
+
+#@njit(types.Tuple((float64, types.unicode_type, float64))(float64[:, :], float64, float64, float64[:], int64))
+# Tha above did not work since there is an empty return happening.
+@njit
+def DensityGERG_numba(P, T, x, iFlag=0):
+    """
+    Sub DensityGERG(iFlag, T, P, x, D, ierr, herr)
+
+    Calculate density as a function of temperature and pressure.  This is an iterative routine that calls PressureGERG
+    to find the correct state point.  Generally only 6 iterations at most are required.
+    If the iteration fails to converge, the ideal gas density and an error message are returned.
+    No checks are made to determine the phase boundary, which would have guaranteed that the output is in the gas phase (or liquid phase when iFlag=2).
+    It is up to the user to locate the phase boundary, and thus identify the phase of the T and P inputs.
+    If the state point is 2-phase, the output density will represent a metastable state.
+
+                    (An initial guess for the density can be sent in D as the negative of the guess for roots that are in the liquid phase instead of using iFlag=2)
+    Inputs:
+        ar:      Dimensionless residual Helmholtz energy and its derivatives with respect to tau and delta.
+        T:       Temperature (K)
+        P:       Pressure (kPa)
+        x :      Composition (mole fraction) of the components.
+        iFlag:   Set to 0 for strict pressure solver in the gas phase without checks (fastest mode, but output state may not be stable single phase)
+                 Set to 1 to make checks for possible 2-phase states (result may still not be stable single phase, but many unstable states will be identified)
+                 Set to 2 to search for liquid phase (and make the same checks when iFlag=1)
+
+    return:
+        D:       Density (mol/l)
+                 For the liquid phase, an initial value can be sent to the routine to avoid
+                 a solution in the metastable or gas phases.
+                 The initial value should be sent as a negative number.
+        ierr:    Error number (0 indicates no error)
+        herr:    Error message if ierr is not equal to zero
+    """
+
+    D = 0  # initial estimate of the density
+
+    dPdD = 0.0
+    d2PdTD = 0.0
+    Cv = 0.0
+    Cp = 0.0
+    W = 0.0
+    PP = 0.0
+
+    ierr = 0
+    herr = ""
+    nFail = 0
+    iFail = 0
+    if P < epsilon:
+        D = 0
+        return
+    tolr = 0.0000001
+    Tcx, Dcx = PseudoCriticalPointGERG_numba(x)
+
+    if D > - epsilon:
+        D = P / RGERG / T                # Ideal gas estimate for vapor phase
+        if iFlag == 2:
+            D = Dcx*3    # Initial estimate for liquid phase
+
+    else:
+        D = abs(D)                  # If D<0, then use as initial estimate
+
+    plog = math.log(P)
+    vlog = -math.log(D)
+    for it in range(1, 51):
+        if (vlog < -7) or (vlog > 100) or (it == 20) or (it == 30) or (it == 40) or (iFail == 1):
+            # Current state is bad or iteration is taking too long.  Restart with completely different initial state
+            iFail = 0
+            if nFail > 2:
+                # Iteration failed (above loop did not find a solution or checks made below indicate possible 2-phase state)
+                ierr = 1
+                herr = "Calculation failed to converge in GERG method, ideal gas density returned."
+                D = P / RGERG / T
+            nFail += 1
+            if nFail == 1:
+                D = Dcx * 3  # If vapor phase search fails, look for root in liquid region
+            elif nFail == 2:
+                D = Dcx * 2.5  # If liquid phase search fails, look for root between liquid and critical regions
+            elif nFail == 3:
+                D = Dcx * 2  # If search fails, look for root in critical region
+
+            vlog = -math.log(D)
+        D = math.exp(-vlog)
+        P2, Z, dPdDsave = PressureGERG_numba(T, D, x)
+        if (dPdDsave < epsilon) or (P2 < epsilon):
+            # Current state is 2-phase, try locating a different state that is single phase
+            vinc = 0.1
+            if D > Dcx:
+                vinc = -0.1
+            if it > 5:
+                vinc = vinc / 2
+            if (it > 10) and (it < 20):
+                vinc = vinc / 5
+            vlog += vinc
+        else:
+            # Find the next density with a first order Newton's type iterative scheme, with
+            # log(P) as the known variable and log(v) as the unknown property.
+            # See AGA 8 publication for further information.
+            dpdlv = -D * dPdDsave     # d(p)/d[log(v)]
+            vdiff = (math.log(P2) - plog) * P2 / dpdlv
+            vlog += - vdiff
+            if abs(vdiff) < tolr:
+                # Check to see if state is possibly 2-phase, and if so restart
+                if dPdDsave < 0:
+                    iFail = 1
+                else:
+                    D = math.exp(-vlog)
+
+                    # If requested, check to see if point is possibly 2-phase
+                    if iFlag > 0:
+                        #PropertiesGERG_numba()
+                        if ((PP <= 0) or (dPdD <= 0) or (d2PdTD <= 0)) or ((Cv <= 0) or (Cp <= 0) or (W <= 0)):
+                            # Iteration failed (above loop did find a solution or checks made below indicate possible 2-phase state)
+                            ierr = 1
+                            herr = "Calculation failed to converge in GERG method, ideal gas density returned."
+                            D = P / RGERG / T
+                        return ierr, herr, D
+                    return ierr, herr, D              # Iteration converged
+    # Iteration failed (above loop did not find a solution or checks made below indicate possible 2-phase state)
+    ierr = 1
+    herr = "Calculation failed to converge in GERG method, ideal gas density returned."
+    D = P / RGERG / T
+    return ierr, herr, D
+
+
+# def AlpharGERG_numba(T, x, itau, idelta, D):
+#     pass
+
+
+@njit(types.UniTuple(float64, 20)(float64, float64, float64[:]))
+def PropertiesGERG_numba(T, P, x):
+    """
+    Sub PropertiesGERG(T, D, x, P, Z, dPdD, d2PdD2, d2PdTD, dPdT, U, H, S, Cv, Cp, W, G, JT, Kappa, A)
+
+    Calculate thermodynamic properties as a function of temperature and density.  Calls are made to the subroutines
+    ReducingParametersGERG, IdealGERG, and ResidualGERG.  If the density is not known, call subroutine DENSITY first
+    with the known values of pressure and temperature.
+
+    Inputs:
+        T:      Temperature (K)
+        P:      Pressure (kPa)
+        x:      Composition (mole fraction)
+        ar:     Dimensionless residual Helmholtz energy and its derivatives with respect to tau and delta.
+
+    Returns:
+        Tuple of thermodynamic properties:
+            molar_mass:        Molar mass (g/mol)
+            D:                 Density (mol/l)
+            Z:                 Compressibility factor
+            dPdD:              First derivative of pressure with respect to density at constant temperature [kPa/(mol/l)]
+            d2PdD2:            Second derivative of pressure with respect to density at constant temperature [kPa/(mol/l)^2]
+            dPdT:              First derivative of pressure with respect to temperature at constant density (kPa/K)
+            U:                 Internal energy (J/mol)
+            H:                 Enthalpy (J/mol)
+            S:                 Entropy [J/(mol-K)]
+            Cv:                Isochoric heat capacity [J/(mol-K)]
+            Cp:                Isobaric heat capacity [J/(mol-K)]
+            Cv_molar:           Specific heat capacity at constant volume [J/(kg-K)]
+            Cp_molar:           Specific heat capacity at constant pressure [J/(kg-K)]
+            W:                 Speed of sound (m/s)
+            G:                 Gibbs energy (J/mol)
+            JT:                Joule-Thomson coefficient (K/Pa)
+            Kappa:             Isentropic exponent
+            Vm:                Molar volume (m^3/mol)
+            molar_mass_ratio:  Ratio of molar mass to air molar mass
+            R_specific:        Specific gas constant [J/(kg-K)]
+    """
+    # Calculate molar mass
+    molar_mass = MolarMassGERG_numba(x)
+
+    # Calculate the density
+    ierr, herr, D = DensityGERG_numba(P, T, x, iFlag=0)
+    MolarDensity = D
+
+    # Calculate the ideal gas Helmholtz energy, and its first and second derivatives with respect to temperature.
+    a0 = Alpha0GERG_numba(T, D, x)
+    # Calculate the real gas Helmholtz energy, and its derivatives with respect to temperature and/or density.
+    ar = AlpharGERG_numba(T, x, itau=1, idelta=0, D=D)
+
+    R = RGERG
+    RT = R * T
+    Z = 1 + ar[0][1]
+    P = D * RT * Z
+    dPdD = RT * (1 + 2 * ar[0][1] + ar[0][2])
+    dPdT = D * R * (1 + ar[0][1] - ar[1][1])
+    d2PdTD = R * (1 + 2 * ar[0][1] + ar[0][2] - 2 * ar[1][1] - ar[1][2])
+    A = RT * (a0[0] + ar[0][0])
+    G = RT * (1 + ar[0][1] + a0[0] + ar[0][0])
+    U = RT * (a0[1] + ar[1][0])
+    H = RT * (1 + ar[0][1] + a0[1] + ar[1][0])
+    S = R * (a0[1] + ar[1][0] - a0[0] - ar[0][0])
+    Cv = -R * (a0[2] + ar[2][0])
+    if D > epsilon:
+        Cp = Cv + T * (dPdT / D) * (dPdT / D) / dPdD
+        d2PdD2 = RT * (2 * ar[0][1] + 4 * ar[0][2] + ar[0][3]) / D
+        JT = (T / D * dPdT / dPdD - 1) / Cp / D  #  '=(dB/dT*T-B)/Cp for an ideal gas, but dB/dT is not known
+    else:
+        Cp = Cv + R
+        d2PdD2 = 0
+        JT = 1E+20
+    W = 1000 * Cp / Cv * dPdD / molar_mass
+    if W < 0:
+        W = 0
+    W = math.sqrt(W)
+    Kappa = pow(W, 2) * molar_mass / (RT * 1000 * Z)
+
+    return (molar_mass, D, Z, dPdD, d2PdD2, dPdT, U, H, S, Cv, Cp, Cv * 1000 / molar_mass, Cp * 1000 / molar_mass,
+            W, G, JT / 1e3, Kappa, molar_mass * P / Z /RT, molar_mass / air_molar_mass, R / molar_mass)

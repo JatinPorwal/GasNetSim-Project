@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/22/24, 3:41 PM
+#     Last change on 2/22/24, 4:31 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -45,8 +45,8 @@ def test_heating_value_100iter():
              'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
              'helium', 'argon']
 
-        for ii in range(21):
-            nist_gas_mixture[a[ii]] = random_b[ii]
+        for _i in range(21):
+            nist_gas_mixture[a[_i]] = random_b[_i]
 
         # Create an instance of the GasMixtureGERG2008 class with the random gas mixture
         gas_mixture = GasMixtureGERG2008(50 * bar, 400, nist_gas_mixture)
@@ -125,24 +125,23 @@ def test_pressure_gerg_100iter():
     """
         Test the numba version of the PressureGERG method of GasMixtureGERG2008 class.
     """
-    for iter in range(1, 101):
+    for iter in range(100):
         # Create the NIST gas mixture dictionary
         nist_gas_mixture = {}
         a = ['methane', 'nitrogen', 'carbon dioxide', 'ethane', 'propane', 'isobutane',
              'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
              'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
              'helium', 'argon']
-        b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
-             0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
-        for ii in range(21):
-            nist_gas_mixture[a[ii]] = b[ii]
+        random_b = np.random.dirichlet(np.ones(21), size=1)[0]
+        for _i in range(21):
+            nist_gas_mixture[a[_i]] = random_b[_i]
 
         # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
         gas_mixture = GasMixtureGERG2008(50 * bar, 400, nist_gas_mixture)
 
         # Define the density input for PressureGERG method
         #d = 10
-        d = iter
+        _, _, d = DensityGERG_numba(P=gas_mixture.P, T=gas_mixture.T, x=random_b, iFlag=0)
 
         # Calculate the expected pressure using an example formula or method
         expected_values = gas_mixture.PressureGERG(d)
@@ -150,7 +149,7 @@ def test_pressure_gerg_100iter():
         Temp = gas_mixture.T
         AR = np.array(gas_mixture.AlpharGERG(itau=0, idelta=0, D=d))
         # Call the PressureGERG method with the given diameter
-        calculated_values = PressureGERG_numba(AR, Temp, d)
+        calculated_values = PressureGERG_numba(Temp, d, random_b)
         assert_almost_equal(expected_values, calculated_values)
 
 
@@ -285,7 +284,7 @@ def test_alphar_gerg_100iter():
         #                         ar(2,0) -     tau^2*partial^2(ar)/partial(tau)^2
 
         #D = 15.03402741629294
-        D = iter
+        _, _, D = DensityGERG_numba(P=gas_mixture.P, T=gas_mixture.T, x=random_b, iFlag=0)
 
         expected_alphargerg = gas_mixture.AlpharGERG(1, 0, D)
 
