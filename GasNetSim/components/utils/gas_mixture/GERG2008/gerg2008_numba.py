@@ -3,13 +3,14 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/22/24, 5:42 PM
+#     Last change on 2/23/24, 4:29 PM
 #     Last change by yifei
 #    *****************************************************************************
+import math
 from numba import njit, float64, types, int32
 from numba.extending import overload
-from GasNetSim.components.utils.gas_mixture.GERG2008.global_variables import *
-#from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
+
+from .gerg2008_constants import *
 
 
 @njit(float64(float64), fastmath=True)
