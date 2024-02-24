@@ -8,15 +8,17 @@
 #    *****************************************************************************
 import logging
 import math
+from scipy.constants import bar, atm, zero_Celsius
 
 from .node import *
+from .utils.pipeline_function.flow_rate import *
 from .utils.pipeline_function.friction_factor import *
 from .utils.pipeline_function.outlet_temperature import *
 from .utils.gas_mixture.gas_mixture import *
 
 
-STANDARD_TEMPERATURE = 288.15
-STANDARD_PRESSURE = 101325
+STANDARD_TEMPERATURE = zero_Celsius + 15  # 15 degree Celsius in Kelvin
+STANDARD_PRESSURE = 1 * atm  # 1 atm in pa
 
 
 class Pipeline:
@@ -25,7 +27,7 @@ class Pipeline:
     """
 
     def __init__(self, inlet: Node, outlet: Node, diameter, length, efficiency=0.85, roughness=0.000015,
-                 ambient_temp=288.15, ambient_pressure=101325, heat_transfer_coefficient=3.69, valve=0,
+                 ambient_temp=15+zero_Celsius, ambient_pressure=1*atm, heat_transfer_coefficient=3.69, valve=0,
                  friction_factor_method='chen'):
         """
 
@@ -115,9 +117,11 @@ class Pipeline:
         :return:
         """
         flow_rate = self.flow_rate
+        pb = STANDARD_PRESSURE
+        tb = STANDARD_TEMPERATURE
         if flow_rate is not None:
             cross_section = math.pi * (self.diameter/2)**2
-            return flow_rate * 101325/288.15 * self.calc_average_temperature() / self.calc_average_pressure()/cross_section
+            return flow_rate * pb/tb * self.calc_average_temperature() / self.calc_average_pressure()/cross_section
         else:
             return None
 
@@ -142,7 +146,7 @@ class Pipeline:
         """
         # Friction factor models implemented in this tool, if not available, add new methods/models in the
         # friction_factor.py file
-        implemented_methods = ['weymouth', 'chen', 'nikuradse', 'colebrook-white']
+        implemented_methods = ['weymouth', 'chen', 'nikuradse', 'colebrook-white', 'hagen-poiseuille']
 
         method = self.friction_factor_method
 
@@ -160,6 +164,8 @@ class Pipeline:
             return nikuradse(d=self.diameter, epsilon=self.roughness)
         elif method == 'colebrook-white':
             return colebrook_white(epsilon=self.roughness, d=self.diameter, N_re=self.calculate_reynolds_number())
+        elif method == "hagen-poiseuille":
+            hagen_poiseuille(N_re=self.calculate_reynolds_number())
 
     def calculate_fictitious_resistance(self):
         tb = STANDARD_TEMPERATURE
@@ -167,7 +173,7 @@ class Pipeline:
         d = self.diameter
         length = self.length
         e = self.efficiency
-        return pb * length**0.5 / (13.29 * tb * d**2.5 * e)
+        return pb * length**0.5 / (FLOW_EQUATION_CONSTANT * tb * d**2.5 * e)
 
     def calc_physical_char_gas_pipe(self):
         """
@@ -176,8 +182,8 @@ class Pipeline:
         :return: Gas pipeline physical characteristics
         """
 
-        tb = 15 + 273.15  # Temperature base, 15 Celsius
-        pb = 101325  # Pressure base, 1 bar
+        tb = STANDARD_TEMPERATURE  # Temperature base, 15 Celsius
+        pb = STANDARD_PRESSURE  # Pressure base, 1 atm
         d = self.diameter
         length = self.length
         # avg_temperature = self.calc_average_temperature()
@@ -193,7 +199,7 @@ class Pipeline:
         #     logging.debug(self.gas_mixture.zs)
         #     logging.warning("Gas mixture specific gravity is smaller than 0, set it as default value 0.5.")
 
-        return (13.29 * tb / pb) * (d ** 2.5) * ((1 / length)**0.5) * e
+        return (FLOW_EQUATION_CONSTANT * tb / pb) * (d ** 2.5) * ((1 / length)**0.5) * e
 
     def calculate_coefficient_for_iteration(self):
         avg_temperature = self.calc_average_temperature()
@@ -229,7 +235,9 @@ class Pipeline:
         elif p1 ** 2 - p2 ** 2 - slope_correction < 0:
             return -1
         else:
-            raise ValueError('Got condition case 0.')
+            print(f"Pipeline {self.inlet_index} has same pressure on both ends!")
+            # raise ValueError('Got condition case 0.')
+            return 0
 
     def calc_flow_rate(self):
         """
@@ -241,9 +249,21 @@ class Pipeline:
         p2 = self.outlet.pressure
 
         slope_correction = self.calc_pipe_slope_correction()
-        temp = self.calculate_coefficient_for_iteration()
+        tmp = self.calculate_coefficient_for_iteration()
 
-        return flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * temp
+        return flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * tmp
+
+    def flow_rate_first_order_derivative(self, is_inlet=True):
+        p1 = self.inlet.pressure
+        p2 = self.outlet.pressure
+        slope_corr = self.calc_pipe_slope_correction()
+        pipeline_coefficient = self.calculate_coefficient_for_iteration()
+        tmp = (abs(p1 ** 2 - p2 ** 2 - slope_corr)) ** (-0.5)
+
+        if is_inlet:
+            return pipeline_coefficient * p1 * tmp
+        else:
+            return pipeline_coefficient * p2 * tmp
 
     def calc_gas_mass_flow(self):
         """
@@ -252,8 +272,8 @@ class Pipeline:
         """
         q = self.calc_flow_rate()
         gas_rho = GasMixture(composition=self.get_mole_fraction(),
-                             pressure=101325,
-                             temperature=288.15).density
+                             pressure=STANDARD_PRESSURE,
+                             temperature=STANDARD_TEMPERATURE).density
         return q * gas_rho
 
     def calc_pipe_outlet_temp(self):
@@ -261,7 +281,7 @@ class Pipeline:
         Calculate pipe outlet temperature based on the physical law of flow temperature loss
         :return: Pipe outlet temperature
         """
-        qm = self.calc_gas_mass_flow()
+        qm = abs(self.calc_gas_mass_flow())
         friction = self.calculate_pipe_friction_factor()
         if qm is not None and friction is not None and self.gas_mixture.heat_capacity_constant_pressure is not None:
             beta = calculate_beta_coefficient(ul=3.69,
@@ -358,9 +378,22 @@ class Resistance:
         p2 = self.outlet.pressure
 
         slope_correction = 0
-        temp = self.calculate_coefficient_for_iteration()
+        tmp = self.calculate_coefficient_for_iteration()
 
-        return flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * temp
+        return flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * tmp
+
+    def flow_rate_first_order_derivative(self, is_inlet=True):
+        p1 = self.inlet.pressure
+        p2 = self.outlet.pressure
+        slope_corr = self.calc_pipe_slope_correction()
+        pipeline_coefficient = self.calculate_coefficient_for_iteration()
+        tmp = (abs(p1 ** 2 - p2 ** 2 - slope_corr)) ** (-0.5)
+
+        if is_inlet:
+            return pipeline_coefficient * p1 * tmp
+        else:
+            return pipeline_coefficient * p2 * tmp
+
 
     def calc_gas_mass_flow(self):
         """
@@ -369,8 +402,97 @@ class Resistance:
         """
         q = self.calc_flow_rate()
         gas_rho = GasMixture(composition=self.gas_mixture.composition,
-                             pressure=101325,
-                             temperature=288.15).density
+                             pressure=STANDARD_PRESSURE,
+                             temperature=STANDARD_TEMPERATURE).density
+        return q * gas_rho
+
+    def calc_pipe_outlet_temp(self):
+        """
+
+        :return:
+        """
+        # TODO: non-static method
+        return 288.15
+
+
+class LinearResistance:
+    def __init__(self, inlet: Node, outlet: Node, resistance=1e6):
+        self.inlet = inlet
+        self.outlet = outlet
+        self.inlet_index = inlet.index
+        self.outlet_index = outlet.index
+        self.resistance = resistance
+        self.flow_rate = None
+        self.gas_mixture = self.inlet.gas_mixture
+
+    def update_gas_mixture(self):
+        self.gas_mixture = self.inlet.gas_mixture
+
+    def calc_pipe_slope_correction(self):
+        return 0
+
+    def calculate_coefficient_for_iteration(self):
+        avg_temperature = 288.15  # TODO temperature calculation for resistance
+        z = self.gas_mixture.compressibility
+        f = 0.01
+        specific_gravity = self.gas_mixture.specific_gravity
+
+        if specific_gravity < 0:
+            specific_gravity = 0.5
+            logging.debug(self.gas_mixture.zs)
+            logging.warning("Gas mixture specific gravity is smaller than 0, set it as default value 0.5.")
+
+        return 1 / (specific_gravity * avg_temperature * z * f)**0.5 / self.resistance
+
+    def determine_flow_direction(self):
+        """
+        Determine the flow direction inside a pipeline
+        :return: -1 or 1, respectively from inlet to outlet or contrariwise
+        """
+        p1 = self.inlet.pressure
+        p2 = self.outlet.pressure
+
+        try:
+            p1 - p2
+        except ValueError or TypeError:
+            print(f'p1: {p1}, p2: {p2}')
+        if p1 > p2:
+            return 1
+        elif p1 < p2:
+            return -1
+        else:
+            raise ValueError('Got condition case 0.')
+
+    def calc_flow_rate(self):
+        """
+        Calculate the volumetric flow rate through the pipe
+        :return: Volumetric flow rate [sm3/s]
+        """
+        flow_direction = self.determine_flow_direction()
+        p1 = self.inlet.pressure
+        p2 = self.outlet.pressure
+
+        tmp = self.calculate_coefficient_for_iteration()
+
+        return flow_direction * abs(p1 - p2) * tmp
+
+    def flow_rate_first_order_derivative(self, is_inlet=True):
+        p1 = self.inlet.pressure
+        p2 = self.outlet.pressure
+        pipeline_coefficient = self.calculate_coefficient_for_iteration()
+
+        return pipeline_coefficient
+
+
+    def calc_gas_mass_flow(self):
+        """
+        Calculate gas mass flow rate through the pipe
+        :return: Mass flow rate [kg/s]
+        """
+        q = self.calc_flow_rate()
+        gas_rho = GasMixture(composition=self.gas_mixture.composition,
+                             pressure=STANDARD_PRESSURE,
+                             temperature=STANDARD_TEMPERATURE).density
         return q * gas_rho
 
     def calc_pipe_outlet_temp(self):
@@ -388,7 +510,7 @@ class ShortPipe:
         self.outlet = outlet
         self.inlet_index = inlet.index
         self.outlet_index = outlet.index
-        self.flow_rate = - self.inlet.flow  # Short pipes are used to connect to supply nodes
+        self.flow_rate = - self.inlet.volumetric_flow  # Short pipes are used to connect to supply nodes
         self.gas_mixture = self.inlet.gas_mixture
 
     def update_gas_mixture(self):
@@ -426,7 +548,7 @@ class ShortPipe:
         :return: Volumetric flow rate [sm3/s]
         """
 
-        return - self.inlet.flow
+        return - self.inlet.volumetric_flow
 
     def calc_gas_mass_flow(self):
         """
@@ -435,8 +557,8 @@ class ShortPipe:
         """
         q = self.calc_flow_rate()
         gas_rho = GasMixture(composition=self.gas_mixture.composition,
-                             pressure=101325,
-                             temperature=288.15).density
+                             pressure=STANDARD_PRESSURE,
+                             temperature=STANDARD_TEMPERATURE).density
         return q * gas_rho
 
     def calc_pipe_outlet_temp(self):

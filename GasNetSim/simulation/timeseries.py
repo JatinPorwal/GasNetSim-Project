@@ -10,8 +10,10 @@ import pandas as pd
 from pathlib import Path
 import logging
 import copy
+from tqdm import tqdm
 
 from ..components.network import Network
+from ..components.utils.utils import plot_network_demand_distribution
 
 
 logging.basicConfig(level=logging.INFO)
@@ -19,8 +21,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.WARNING)
 
 
-def read_profiles(file):
-    profiles = pd.read_csv(Path(file))
+def read_profiles(file, sep=";"):
+    profiles = pd.read_csv(Path(file), sep=sep)
     logger.info(f'Reading profiles from {file}.')
     return profiles
 
@@ -48,8 +50,9 @@ def check_profiles(profiles):
         # df['time'] = df['time'].apply(lambda x: pd.Timestamp.now() + pd.Timedelta(seconds=x))
 
 
-def run_snapshot(network):
-    network = network.simulation()
+def run_snapshot(network, tol=0.01):
+    # plot_network_demand_distribution(network)
+    network = network.simulation(tol=tol)
     return network
 
 
@@ -92,13 +95,15 @@ def update_network_topology(network):
     return Network(nodes=remaining_nodes, pipelines=None, resistances=remaining_pipes)
 
 
-def run_time_series(network, file=None):
+def run_time_series(network, file=None, sep=";", profile_type="energy"):
     # create a copy of the input network
     full_network = copy.deepcopy(network)
+    results_to_save = ["nodal_pressure", "pipeline_flowrate", "nodal_gas_composition"]
+    results = dict([(k, []) for k in results_to_save])
 
     # read profile
     if file is not None:
-        profiles = read_profiles(file)
+        profiles = read_profiles(file, sep=sep)
         time_steps = profiles.index
     else:
         time_steps = range(5)  # test with 5 fictitious time steps
@@ -106,20 +111,60 @@ def run_time_series(network, file=None):
     # create error log to record the time step indices where error occurs
     error_log = list()
 
-    for t in time_steps:
+    pressure_prev = None
+
+    for t in tqdm(time_steps):
+        full_network = copy.deepcopy(network)
+        full_network.pressure_prev = pressure_prev  # Nodal pressure values at previous time step
+        if pressure_prev is None:
+            full_network.run_initialization = True
+        else:
+            full_network.run_initialization = False
+            full_network.assign_pressure_values(pressure_prev)
+
         for i in full_network.nodes.keys():
             if i in full_network.reference_nodes:
-                pass
+                full_network.nodes[i].volumetric_flow = None
+                full_network.nodes[i].energy_flow = None
             else:
                 try:
-                    full_network.nodes[i].demand = profiles[str(i)][t]
-                    full_network.nodes[i].demand_type = 'energy'
+                    if profile_type == "volumetric":
+                        full_network.nodes[i].volumetric_flow = profiles[str(i)][t]
+                        full_network.nodes[i].convert_volumetric_to_energy_flow()
+                    elif profile_type == "energy":
+                        full_network.nodes[i].energy_flow = profiles[str(i)][t]
+                        full_network.nodes[i].convert_energy_to_volumetric_flow()
+                    else:
+                        raise ValueError(f"Unknown profile type {profile_type}!")
+                    # full_network.nodes[i].demand_type = 'energy'
                 except KeyError:
-                    pass
-        simplified_network = update_network_topology(full_network)
+                    print(f"Node index {i} is not found!")
+        # simplified_network = update_network_topology(full_network)
         try:
-            network = run_snapshot(simplified_network)
+            # network = run_snapshot(simplified_network)
+            for n in full_network.nodes.values():
+                if n.volumetric_flow is not None and n.volumetric_flow < 0:
+                    print(n.volumetric_flow)
+            full_network = copy.deepcopy(run_snapshot(full_network))
+            pressure_prev = full_network.save_pressure_values()
         except RuntimeError:
-            error_log.append([simplified_network, profiles.iloc[t]])
+            # error_log.append([simplified_network, profiles.iloc[t]])
+            error_log.append([full_network, profiles.iloc[t]])
 
-    return network
+        results = save_time_series_results(full_network, results, nodal_pressure=True, pipeline_flowrate=True,
+                                           nodal_gas_composition=True)
+
+    return results
+
+
+def save_time_series_results(network, results, nodal_pressure=True, pipeline_flowrate=True, nodal_gas_composition=True):
+    if nodal_pressure:
+        results["nodal_pressure"].append([node.pressure for node in network.nodes.values()])
+
+    if nodal_gas_composition:
+        results["nodal_gas_composition"].append([node.gas_mixture.composition for node in network.nodes.values()])
+
+    if pipeline_flowrate:
+        results["pipeline_flowrate"].append([pipe.flow_rate for pipe in network.pipelines.values()])
+
+    return results

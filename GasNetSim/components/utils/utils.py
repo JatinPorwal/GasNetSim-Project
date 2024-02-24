@@ -11,6 +11,8 @@ from pyparsing import col
 from collections import OrderedDict
 from scipy import sparse
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 def create_connection_matrix(n_nodes: int, components: dict, component_type: int, sparse_matrix: bool = False):
@@ -37,26 +39,6 @@ def create_connection_matrix(n_nodes: int, components: dict, component_type: int
     return cnx
 
 
-def forward_substitution(L, b):
-    n_row = len(b)
-
-    z = np.zeros(n_row)
-
-    for row in range(n_row):
-        res = b[row]
-        for i in range(row - 1, -1):
-            res = res - L[row, i] * z[i]
-        z[row] = res
-    return z
-
-
-def backward_substitution(U, z):
-    n_row = len(z)
-    x = np.zeros(n_row)
-
-    return x
-
-
 def levenberg_marquardt_damping_factor(m, s, b):
     return 10 ** (m * math.log10(s + b))
 
@@ -68,6 +50,16 @@ def delete_matrix_rows_and_columns(matrix, to_remove):
     new_matrix = np.delete(new_matrix, to_remove, 1)  # delete columns
 
     return new_matrix
+
+
+def jacobian_matrix_condition_number(matrix):
+    print(f"The condition number of the matrix is {np.linalg.cond(matrix)}.")
+
+
+def print_n_largest_absolute_values(n, values):
+    sorted_values = sorted([abs(x) for x in values])
+    print(sorted_values[-n::-1])
+    return None
 
 
 def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_matrix):
@@ -95,7 +87,6 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_
 
             # Sum up flow rate * temperature
             total_inflow_temperature_times_flow_rate += inflow_rate * inflow_temperature
-            total_inflow += inflow_rate
 
             # create a OrderedDict to store gas flow fractions
             gas_flow_comp = OrderedDict({gas: comp * inflow_rate for gas, comp in gas_composition.items()})
@@ -107,6 +98,125 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_
 
         nodal_gas_inflow_composition[i_node] = {k: v / total_inflow for k, v in total_inflow_comp.items()}
 
-        nodal_gas_inflow_temperature[i_node] = total_inflow_temperature_times_flow_rate / total_inflow
+        if total_inflow != .0:
+            nodal_gas_inflow_temperature[i_node] = total_inflow_temperature_times_flow_rate / total_inflow
+        else:
+            nodal_gas_inflow_temperature[i_node] = np.nan
 
     return nodal_gas_inflow_composition, nodal_gas_inflow_temperature
+
+
+def calculate_flow_matrix(network, pressure_bar):
+    connections = network.connections
+    nodes = network.nodes
+    n_nodes = len(nodes)
+    flow_mat = np.zeros((n_nodes, n_nodes), dtype=float)
+
+    pressure_index = 0
+    for node in nodes.values():
+        if node.index not in network.non_junction_nodes:
+            node.pressure = pressure_bar[pressure_index] * 1e5
+            pressure_index += 1
+
+    for connection in connections.values():
+        i = connection.inlet_index - 1
+        j = connection.outlet_index - 1
+        connection.inlet = nodes[i+1]
+        connection.outlet = nodes[j+1]
+
+        flow_direction = connection.determine_flow_direction()
+
+        p1 = nodes[i+1].pressure
+        p2 = nodes[j+1].pressure
+
+        slope_correction = connection.calc_pipe_slope_correction()
+        temp = connection.calculate_coefficient_for_iteration()
+
+        flow_rate = flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * temp
+
+        flow_mat[i][j] = - flow_rate
+        flow_mat[j][i] = flow_rate
+
+    return flow_mat
+
+
+def calculate_flow_vector(network, pressure_bar, target_flow):
+    flow_matrix = calculate_flow_matrix(network, pressure_bar)
+    n_nodes = len(network.nodes.values())
+    nodal_flow = np.dot(flow_matrix, np.ones(n_nodes))
+    nodal_flow = [nodal_flow[i] for i in range(len(nodal_flow)) if i + 1 not in network.non_junction_nodes]
+    delta_flow = target_flow - nodal_flow
+
+    # delta_flow = [delta_flow[i] for i in range(len(delta_flow)) if i + 1 not in network.non_junction_nodes]
+    return delta_flow
+
+
+def plot_network_demand_distribution(network):
+    nodes = network.nodes.values()
+    node_demand = [n.volumetric_flow for n in nodes if n.volumetric_flow is not None]
+    sns.histplot(data=node_demand, stat="probability")
+    plt.xlim((min(node_demand)-10, max(node_demand) + 10))
+    plt.xlabel("Nodal volumetric flow demand [sm^3/s]")
+    plt.show()
+    return None
+
+
+def check_square_matrix(a):
+    return a.shape[0] == a.shape[1]
+
+def check_symmetric(a, rtol=1e-05, atol=1e-08):
+    return np.allclose(a, a.T, rtol=rtol, atol=atol)
+
+
+def check_all_off_diagonal_elements(a, criterion):
+    res = True
+
+    if check_square_matrix(a):
+        pass
+    else:
+        print("Matrix is not a square matrix!")
+
+    for i in range(a.shape[0]):
+        for j in range(a.shape[1]):
+            if i != j:
+                if criterion == "zero":
+                    res = (a[i][j] == 0)
+                elif criterion == "positive":
+                    res = (a[i][j] > 0)
+                elif criterion == "non-negative":
+                    res = (a[i][j] >= 0)
+                elif criterion == "negative":
+                    res = (a[i][j] < 0)
+                elif criterion == "non-positive":
+                    res = (a[i][j] <= 0)
+                else:
+                    print("Check the given criterion!")
+                    return False
+                if res == False:
+                    return False
+    return res
+
+
+def check_all_diagonal_elements(a, criterion):
+    res = True
+
+    if check_square_matrix(a):
+        pass
+    else:
+        print("Matrix is not a square matrix!")
+
+    if criterion == "zero":
+        res = (np.diagonal(a) == 0).all()
+    elif criterion == "positive":
+        res = (np.diagonal(a) > 0).all()
+    elif criterion == "non-negative":
+        res = (np.diagonal(a) >= 0).all()
+    elif criterion == "negative":
+        res = (np.diagonal(a) < 0).all()
+    elif criterion == "non-positive":
+        res = (np.diagonal(a) <= 0).all()
+    else:
+        print("Check the given criterion!")
+        return False
+
+    return res

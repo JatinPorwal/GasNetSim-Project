@@ -1,20 +1,20 @@
-#  #!/usr/bin/env python
-#  -*- coding: utf-8 -*-
-#  ******************************************************************************
-#    Copyright (c) 2022.
-#    Developed by Yifei Lu
-#    Last change on 3/14/22, 9:41 PM
-#    Last change by yifei
-#   *****************************************************************************
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2023.
+#     Developed by Yifei Lu
+#     Last change on 5/31/23, 4:14 PM
+#     Last change by yifei
+#    *****************************************************************************
 import pandas as pd
 import numpy as np
 from collections import OrderedDict
 from pathlib import Path
 
-from ..components.pipeline import Pipeline, Resistance, ShortPipe
-from ..components.node import Node
-from ..components.network import Network
-from ..utils.exception import *
+from GasNetSim.components.pipeline import Pipeline, Resistance, ShortPipe, LinearResistance
+from GasNetSim.components.node import Node
+from GasNetSim.components.network import Network
+from GasNetSim.utils.exception import *
 
 
 def read_nodes(path_to_file: Path) -> dict:
@@ -32,12 +32,12 @@ def read_nodes(path_to_file: Path) -> dict:
             row['gas_composition'] = OrderedDict(eval(row['gas_composition']))
         nodes[row['node_index']] = Node(node_index=row['node_index'],
                                         pressure_pa=row['pressure_pa'],
-                                        flow=row['flow_sm3_per_s'],
+                                        volumetric_flow=row['flow_sm3_per_s'],
+                                        energy_flow=row['flow_MW'],
                                         temperature=row['temperature_k'],
                                         altitude=row['altitude_m'],
                                         gas_composition=row['gas_composition'],
-                                        node_type=row['node_type'],
-                                        flow_type=row['flow_type'])
+                                        node_type=row['node_type'])
     return nodes
 
 
@@ -88,6 +88,24 @@ def read_resistances(path_to_file: Path, network_nodes: dict) -> dict:
     return resistances
 
 
+def read_linear_resistances(path_to_file: Path, network_nodes: dict) -> dict:
+    """
+
+    :param path_to_file:
+    :param network_nodes:
+    :return:
+    """
+    resistances = dict()
+    df_linear_resistance = pd.read_csv(path_to_file, delimiter=';')
+    df_linear_resistance = df_linear_resistance.replace({np.nan: None})
+
+    for row_index, row in df_linear_resistance.iterrows():
+        resistances[row['linear_resistance_index']] = LinearResistance(inlet=network_nodes[row['inlet_index']],
+                                                                       outlet=network_nodes[row['outlet_index']],
+                                                                       resistance=row['linear_resistance'])
+    return resistances
+
+
 def read_shortpipes(path_to_file: Path, network_nodes: dict) -> dict:
     """
 
@@ -112,13 +130,17 @@ def create_network_from_csv(path_to_folder: Path) -> Network:
     :return:
     """
     all_files = list(path_to_folder.glob('*.csv'))
-    nodes = read_nodes(Path('./' + '_'.join(all_files[0].stem.split('_')[:-1]) + '_nodes.csv'))
+    # nodes = read_nodes(Path('./' + '_'.join(all_files[0].stem.split('_')[:-1]) + '_nodes.csv'))
+    nodes_file = next((file for file in all_files if 'node' in file.stem), None)
+
+    nodes = read_nodes(nodes_file)
 
     network_components = {'node': nodes,  # the dataset should have at least node
                           'pipeline': None,
                           'compressor': None,
                           'resistance': None,
-                          'shortpipe': None}
+                          'shortpipe': None,
+                          'linear_resistance': None}
 
     for file in all_files:
         file_name = file.stem
@@ -133,6 +155,9 @@ def create_network_from_csv(path_to_folder: Path) -> Network:
         elif 'resistance' in file_name:
             resistances = read_resistances(file, nodes)
             network_components['resistance'] = resistances
+        elif 'linearR' in file_name:
+            linear_resistances = read_linear_resistances(file, nodes)
+            network_components['linear_resistance'] = linear_resistances
         elif 'shortpipe' in file_name:
             shortpipes = read_shortpipes(file, nodes)
             network_components['shortpipe'] = shortpipes
@@ -143,4 +168,5 @@ def create_network_from_csv(path_to_folder: Path) -> Network:
                    pipelines=network_components['pipeline'],
                    compressors=network_components['compressor'],
                    resistances=network_components['resistance'],
+                   linear_resistances=network_components['linear_resistance'],
                    shortpipes=network_components['shortpipe'])
