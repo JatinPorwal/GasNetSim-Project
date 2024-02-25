@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/23/24, 4:29 PM
+#     Last change on 2/24/24, 5:20 PM
 #     Last change by yifei
 #    *****************************************************************************
 import math
@@ -299,17 +299,17 @@ def CalculateHeatingValue_numba(MolarMass, MolarDensity, comp, hhv, parameter):
     HHV = LHV + (hw_gas - hw_liq) * products_dict["water"]
 
     if parameter == 'mass':
-        # returns heating value in MJ/kg
+        # returns heating value in J/kg
         if hhv:
             heating_value = HHV / MolarMass * 1e3
         else:
             heating_value = LHV / MolarMass * 1e3
     else:
-        # returns heating value in kJ/m3
+        # returns heating value in J/m3
         if hhv:
-            heating_value = HHV * MolarDensity
+            heating_value = HHV * MolarDensity * 1e3
         else:
-            heating_value = LHV * MolarDensity
+            heating_value = LHV * MolarDensity * 1e3
 
     return heating_value
 
