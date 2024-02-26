@@ -1,19 +1,20 @@
-#  #!/usr/bin/env python
-#  -*- coding: utf-8 -*-
-#  ******************************************************************************
-#    Copyright (c) 2021.
-#    Developed by Yifei Lu
-#    Last change on 12/21/21, 4:22 PM
-#    Last change by yifei
-#   *****************************************************************************
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 2/26/24, 2:05 PM
+#     Last change by yifei
+#    *****************************************************************************
 from collections import OrderedDict
 import logging
 from scipy.constants import atm, zero_Celsius
 
 # from .thermo.thermo import Mixture
-from thermo import Mixture
+# from thermo import Mixture
 from .GERG2008.gerg2008 import *
-from .heating_value import calc_heating_value
+from .GERG2008.gerg2008_constants import *
+# from .heating_value import calc_heating_value
 
 
 class GasMixture:
