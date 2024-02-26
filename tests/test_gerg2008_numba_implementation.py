@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/22/24, 5:42 PM
+#     Last change on 2/26/24, 10:28 AM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -57,7 +57,7 @@ def test_heating_value():
         nist_gas_mixture[a[_i]] = b[_i]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=False)
 
     # Test the CalculateHeatingValue function
     expected_heating_value = gas_mixture.CalculateHeatingValue(comp=nist_gas_mixture, hhv=True, parameter="volume")
@@ -85,7 +85,7 @@ def test_convert_composition_gerg():
         nist_gas_mixture[a[ii]] = b[ii]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=False)
 
     # Test the ConvertCompositionGERG function
     expected_result = gas_mixture.CovertCompositionGERG(nist_gas_mixture)
@@ -112,7 +112,7 @@ def test_molarmass_gerg():
         nist_gas_mixture[a[ii]] = b[ii]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=False)
 
     # Calculate the expected molar mass manually based on the given mixture
     expected_molar_mass = gas_mixture.MolarMassGERG()
@@ -138,7 +138,7 @@ def test_pressure_gerg():
         nist_gas_mixture[a[ii]] = b[ii]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=False)
 
     # Define the density input for PressureGERG method
     d = 10
@@ -169,7 +169,7 @@ def test_density_gerg():
         nist_gas_mixture[a[ii]] = b[ii]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=False)
 
     # Define the density input for PressureGERG method
     d = gas_mixture.MolarDensity
@@ -203,7 +203,7 @@ def test_alpha0_gerg():
         nist_gas_mixture[a[ii]] = b[ii]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=False)
 
     # Expected value calculated from the function call
     # a0(0) - Ideal gas Helmholtz energy (all dimensionless [i.e., divided by RT])
@@ -236,7 +236,7 @@ def test_reducing_parameters_gerg():
         nist_gas_mixture[a[ii]] = b[ii]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=False)
 
     # Expected value calculated from the function call
     expected_reducingparametersgerg = gas_mixture.ReducingParametersGERG()
@@ -264,7 +264,7 @@ def test_pseudo_critical_point_gerg():
         nist_gas_mixture[a[ii]] = b[ii]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=False)
 
     # Expected value calculated from the function call
     expected_pseudocriticalpointgerg = gas_mixture.PseudoCriticalPointGERG()
@@ -290,7 +290,7 @@ def test_alphar_gerg():
         nist_gas_mixture[a[ii]] = b[ii]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=False)
 
     # Expected value calculated from the function call
     #                         ar(0,0) - Residual Helmholtz energy (dimensionless, =a/RT)
@@ -329,7 +329,7 @@ def test_PropertiesGERG():
         nist_gas_mixture[a[ii]] = b[ii]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=False)
 
     expected_PropertiesGERG = [gas_mixture.MolarMass,
                                 gas_mixture.MolarDensity,
