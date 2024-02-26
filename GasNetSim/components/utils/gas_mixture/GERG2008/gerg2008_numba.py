@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/24/24, 5:20 PM
+#     Last change on 2/26/24, 9:57 AM
 #     Last change by yifei
 #    *****************************************************************************
 import math
@@ -167,7 +167,7 @@ def CovertCompositionGERG_numba(composition):
     for gas_spice, composition in composition.items():
         gerg_composition[gerg_gas_spices.index(gas_spice)] = composition
 
-    return gerg_composition
+    return np.array(gerg_composition)
 
 
 def CalculateHeatingValue_numba(MolarMass, MolarDensity, comp, hhv, parameter):
