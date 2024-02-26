@@ -203,6 +203,9 @@ class GasMixtureGERG2008:
             self.standard_density = self.rho * self.T / self.P * atm / 288.15  # TODO: define global constants
             self.SG = properties[18]
             self.Z = properties[2]
+            self.dPdD = properties[3]
+            self.d2PdD2 = properties[4]
+            self.dPdT = properties[5]
             self.energy = properties[6]
             self.enthalpy = properties[7]
             self.entropy = properties[8]
