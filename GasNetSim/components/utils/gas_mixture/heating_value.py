@@ -1,16 +1,16 @@
-#  #!/usr/bin/env python
-#  -*- coding: utf-8 -*-
-#  ******************************************************************************
-#    Copyright (c) 2021.
-#    Developed by Yifei Lu
-#    Last change on 12/21/21, 4:58 PM
-#    Last change by yifei
-#   *****************************************************************************
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 3/7/24, 10:20 AM
+#     Last change by yifei
+#    *****************************************************************************
 from collections import OrderedDict
 import cantera as ct
 
 # from .thermo.thermo import Mixture
-from thermo import Mixture
+# from thermo import Mixture
 from .gas_mixture import *
 
 GAS = ct.Solution('gri30.yaml')

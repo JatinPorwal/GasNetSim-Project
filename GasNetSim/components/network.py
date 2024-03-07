@@ -1,11 +1,11 @@
-#  #!/usr/bin/env python
-#  -*- coding: utf-8 -*-
-#  ******************************************************************************
-#    Copyright (c) 2022.
-#    Developed by Yifei Lu
-#    Last change on 1/17/22, 11:21 AM
-#    Last change by yifei
-#   *****************************************************************************
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 3/7/24, 10:20 AM
+#     Last change by yifei
+#    *****************************************************************************
 
 import numpy as np
 from typing import Tuple
@@ -17,7 +17,7 @@ import seaborn as sns
 from scipy import optimize
 from collections import OrderedDict
 
-from .utils.gas_mixture.heating_value import *
+# from .utils.gas_mixture.heating_value import *
 from .utils.utils import *
 from .node import *
 from .pipeline import *

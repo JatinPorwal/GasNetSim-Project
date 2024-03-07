@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/22/24, 5:42 PM
+#     Last change on 2/26/24, 10:23 AM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -333,7 +333,7 @@ def speed_pseudo_critical_point_gerg():
     print(f"For 100 iterations, PseudoCriticalPointGERG_numba took {function_time:.6f} seconds.")
 
 def wrapper_function(args):
-    AlpharGERG_numba(*args)
+    PropertiesGERG_numba(*args)
     return None
 
 
@@ -353,7 +353,7 @@ def speed_alphar_gerg(repeats=10000):
         nist_gas_mixture[a[ii]] = b[ii]
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=True)
 
     # Expected value calculated from the function call
     #                         ar(0,0) - Residual Helmholtz energy (dimensionless, =a/RT)
@@ -368,7 +368,8 @@ def speed_alphar_gerg(repeats=10000):
     # Measure the execution time
     start_time = timer()
     for _ in prange(repeats):
-        expected_alphargerg = gas_mixture.AlpharGERG(1, 0, D)
+        # expected_alphargerg = gas_mixture.PropertiesGERG()
+        PropertiesGERG_numba(T=gas_mixture.T, P=gas_mixture.P, x=gas_mixture.x)
     end_time = timer()
     function_time = end_time - start_time
     print(f"For {repeats} iterations, AlpharGERG took {function_time:.6f} seconds.")
@@ -377,7 +378,7 @@ def speed_alphar_gerg(repeats=10000):
 
     start_time = timer()
     for _ in prange(repeats):
-        AlpharGERG_numba(Temp, b, 1, 0, D)
+        PropertiesGERG_numba(Temp, b, 1, 0, D)
     end_time = timer()
     function_time = end_time - start_time
     print(f"For {repeats} iterations, AlpharGERG_numba took {function_time:.6f} seconds.")
