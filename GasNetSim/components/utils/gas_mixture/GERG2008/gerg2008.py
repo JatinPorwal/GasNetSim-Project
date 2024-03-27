@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/27/24, 10:44 AM
+#     Last change on 3/27/24, 11:22 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -199,7 +199,7 @@ class GasMixtureGERG2008:
             self.MolarMass = properties[0]
             # self.MolarDensity = self.DensityGERG(iFlag=0)[2]
             self.MolarDensity = properties[1]
-            self.rho = properties[17]
+            self.rho = properties[17] / 1e3  # kg/m3
             self.standard_density = self.rho * self.T / self.P * atm / 288.15  # TODO: define global constants
             self.SG = properties[18]
             self.Z = properties[2]
