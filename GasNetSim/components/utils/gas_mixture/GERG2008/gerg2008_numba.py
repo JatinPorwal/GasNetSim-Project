@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/26/24, 9:57 AM
+#     Last change on 3/27/24, 11:24 PM
 #     Last change by yifei
 #    *****************************************************************************
 import math
@@ -161,11 +161,11 @@ def CovertCompositionGERG_numba(composition):
         return:
             gerg_composition (list): A list representing the GERG composition of gases.
     """
-    gerg_composition = [0.0] * 21
+    gerg_composition = np.zeros(21)
     global gerg_gas_spices
 
     for gas_spice, composition in composition.items():
-        gerg_composition[gerg_gas_spices.index(gas_spice)] = composition
+        gerg_composition[np.where(gerg_gas_spices == gas_spice)] = composition
 
     return np.array(gerg_composition)
 
@@ -224,7 +224,7 @@ def CalculateHeatingValue_numba(MolarMass, MolarDensity, comp, hhv, parameter):
                           'n-pentane': -173500.0,
                           'n-hexane': -198490.0,
                           'n-heptane': -223910.0,
-                          'n-hctane': -249730.0,
+                          'n-octane': -249730.0,
                           'n-nonane': -274700.0,
                           'n-decane': -300900.0,
                           'hydrogen': 0.0,
@@ -312,6 +312,32 @@ def CalculateHeatingValue_numba(MolarMass, MolarDensity, comp, hhv, parameter):
             heating_value = LHV * MolarDensity * 1e3
 
     return heating_value
+
+
+@njit(float64(float64, float64[:]))
+def CalculateCO2Emission_numba(MolarMass, x):
+    """
+        Calculate the heating value of a gas mixture based on its composition and other properties.
+
+        Inputs:
+            MolarMass (float64): The molar mass of the gas mixture.
+            MolarDensity (float64): The molar density of the gas mixture.
+            comp (dict): A dictionary representing the composition of the gas mixture.
+            hhv (bool): True for Higher Heating Value (HHV) calculation, False for Lower Heating Value (LHV) calculation.
+            parameter (str): Specifies the parameter for heating value calculation. Options: 'mass' or 'volume'.
+
+        return:
+            heating_value (float64): The calculated heating value based on the provided parameters.
+    """
+    global gerg_gas_chemical_composition
+
+    _x = np.ascontiguousarray(x)
+    reactant_atoms = np.dot(gerg_gas_chemical_composition.T, _x)
+
+    # products
+    n_CO2 = reactant_atoms[0]
+
+    return n_CO2 * 44.01 / MolarMass
 
 
 @njit(float64[:](float64, float64, float64[:]))

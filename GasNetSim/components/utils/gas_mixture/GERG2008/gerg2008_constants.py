@@ -1,3 +1,12 @@
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 3/26/24, 12:54 PM
+#     Last change by yifei
+#    *****************************************************************************
+
 import numpy as np
 import math
 
@@ -60,10 +69,45 @@ air_molar_mass = 28.97  # g/mol
 #     :return:
 #     """
 
-gerg_gas_spices = ['methane', 'nitrogen', 'carbon dioxide', 'ethane', 'propane', 'isobutane',
-                   'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
-                   'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
-                   'helium', 'argon']
+gerg_gas_spices = np.array(['methane', 'nitrogen', 'carbon dioxide', 'ethane', 'propane', 'isobutane',
+                            'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
+                            'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
+                            'helium', 'argon'])
+
+dict_components = {'methane': {'C': 1, 'H': 4},
+                   'nitrogen': {'N': 2},
+                   'carbon dioxide': {'C': 1, 'O': 2},
+                   'ethane': {'C': 2, 'H': 6},
+                   'propane': {'C': 3, 'H': 8},
+                   'isobutane': {'C': 4, 'H': 10},
+                   'n-butane': {'C': 4, 'H': 10},
+                   'isopentane': {'C': 5, 'H': 12},
+                   'n-pentane': {'C': 5, 'H': 12},
+                   'n-hexane': {'C': 6, 'H': 14},
+                   'n-heptane': {'C': 7, 'H': 16},
+                   'n-octane': {'C': 8, 'H': 18},
+                   'n-nonane': {'C': 9, 'H': 20},
+                   'n-decane': {'C': 10, 'H': 22},
+                   'hydrogen': {'H': 2},
+                   'oxygen': {'O': 2},
+                   'carbon monoxide': {'C': 1, 'O': 1},
+                   'water': {'H': 2, 'O': 1},
+                   'hydrogen sulfide': {'H': 2, 'S': 1},
+                   'helium': {'He': 1},
+                   'argon': {'Ar': 1}}
+
+# Chemical elements ordered as C, H, N, O, S, He, Ar
+chemical_elements = np.array(['C', 'H', 'N', 'O', 'S', 'He', 'Ar'])
+
+# Initialize an empty 2D array
+gerg_gas_chemical_composition = np.zeros((len(gerg_gas_spices), len(chemical_elements)), dtype=float)
+
+# Fill in the array
+for i, component in enumerate(gerg_gas_spices):
+    for j, element in enumerate(chemical_elements):
+        gerg_gas_chemical_composition[i, j] = dict_components.get(component, {}).get(element, 0)
+
+gerg_gas_chemical_composition = np.ascontiguousarray(gerg_gas_chemical_composition.T)
 
 bijk = np.zeros((MaxMdl, MaxTrmM))
 T0 = 0

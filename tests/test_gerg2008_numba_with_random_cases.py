@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/26/24, 3:22 PM
+#     Last change on 3/26/24, 9:19 AM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -295,3 +295,28 @@ def test_alphar_gerg_100iter():
 
         assert_almost_equal(actual_alphargerg, expected_alphargerg)
 
+
+def test_co2_emission():
+    """
+    Test the numba version of the CalculateHeatingValue function of GasMixtureGERG2008 class.
+    """
+    # Generate random composition with sum equal to 1
+    random_b = np.random.dirichlet(np.ones(21), size=1)[0]
+
+    # Create the NIST gas mixture dictionary
+    nist_gas_mixture = {}
+    a = ['methane', 'nitrogen', 'carbon dioxide', 'ethane', 'propane', 'isobutane',
+         'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
+         'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
+         'helium', 'argon']
+
+    for _i in range(21):
+        nist_gas_mixture[a[_i]] = random_b[_i]
+
+    # Create an instance of the GasMixtureGERG2008 class with the random gas mixture
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=False)
+
+    molarmass = gas_mixture.MolarMass
+
+    calculated_heating_value = CalculateCO2Emission_numba(MolarMass=molarmass, x=random_b)
+    print(calculated_heating_value)
