@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 3/26/24, 9:19 AM
+#     Last change on 3/28/24, 9:04 AM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -318,5 +318,4 @@ def test_co2_emission():
 
     molarmass = gas_mixture.MolarMass
 
-    calculated_heating_value = CalculateCO2Emission_numba(MolarMass=molarmass, x=random_b)
-    print(calculated_heating_value)
+    co2_emission_factor = CalculateCO2Emission_numba(MolarMass=molarmass, x=random_b)

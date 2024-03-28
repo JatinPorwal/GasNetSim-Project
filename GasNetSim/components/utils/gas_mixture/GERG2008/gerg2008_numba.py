@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 3/27/24, 11:24 PM
+#     Last change on 3/28/24, 9:10 AM
 #     Last change by yifei
 #    *****************************************************************************
 import math
@@ -332,7 +332,7 @@ def CalculateCO2Emission_numba(MolarMass, x):
     global gerg_gas_chemical_composition
 
     _x = np.ascontiguousarray(x)
-    reactant_atoms = np.dot(gerg_gas_chemical_composition.T, _x)
+    reactant_atoms = np.dot(gerg_gas_chemical_composition, _x)
 
     # products
     n_CO2 = reactant_atoms[0]
