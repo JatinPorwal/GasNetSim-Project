@@ -1,9 +1,9 @@
 #   #!/usr/bin/env python
 #   -*- coding: utf-8 -*-
 #   ******************************************************************************
-#     Copyright (c) 2023.
+#     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 1/5/23, 9:16 AM
+#     Last change on 2/29/24, 11:34 AM
 #     Last change by yifei
 #    *****************************************************************************
 import pandas as pd
@@ -11,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 from numpy.testing import assert_almost_equal
 
-from GasNetSim.components import *
+from GasNetSim.components.utils.gas_mixture import GasMixture
 from GasNetSim.components.utils.pipeline_function.outlet_temperature import *
 
 from scipy.constants import bar, R, atm
@@ -25,14 +25,14 @@ def test_pipeline_outlet_temperature_calculation():
     #               2: Node(node_index=2, pressure_pa=48 * bar, temperature=300, node_type='reference')}
     # test_pipeline = Pipeline(test_nodes[1], test_nodes[2], diameter=0.5, length=500*1e3)
 
-    gas_mixture = Mixture(T=300, P=50 * bar, zs={"methane": 0.9, "hydrogen": 0.1})
+    gas_mixture = GasMixture(temperature=300, pressure=50 * bar, composition={"methane": 0.9, "hydrogen": 0.1})
     heat_transfer_coefficient = 3.69 * 10
     mass_flow_rate = 55  # kg/s
-    Cp = gas_mixture.Cp
+    Cp = gas_mixture.heat_capacity_constant_pressure
     diameter = 0.5
-    JT = gas_mixture.JT
-    Z = gas_mixture.Z
-    R_specific = R / gas_mixture.MW
+    JT = gas_mixture.joule_thomson_coefficient
+    Z = gas_mixture.compressibility
+    R_specific = gas_mixture.R_specific
     friction_factor = 0.01
     average_pressure = 50*bar
     beta = calculate_beta_coefficient(heat_transfer_coefficient, mass_flow_rate, Cp, diameter)
