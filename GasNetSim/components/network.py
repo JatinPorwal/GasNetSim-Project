@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 3/7/24, 10:20 AM
+#     Last change on 4/29/24, 11:02 AM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -242,6 +242,8 @@ class Network:
         resistance = list()
         if self.pipelines is not None:
             pipeline_resistance = [[x.inlet_index, x.outlet_index, x.resistance, x.outlet.volumetric_flow]
+                                   if x.outlet.volumetric_flow is not None
+                                   else [x.inlet_index, x.outlet_index, x.resistance, x.inlet.volumetric_flow]  # outlet is reference node
                                    for x in self.pipelines.values()]
             resistance += pipeline_resistance
         if self.resistances is not None:
