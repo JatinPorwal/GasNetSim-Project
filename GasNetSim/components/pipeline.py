@@ -1,9 +1,9 @@
 #   #!/usr/bin/env python
 #   -*- coding: utf-8 -*-
 #   ******************************************************************************
-#     Copyright (c) 2022.
+#     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 6/19/22, 11:11 AM
+#     Last change on 4/29/24, 1:34 PM
 #     Last change by yifei
 #    *****************************************************************************
 import logging
@@ -58,10 +58,7 @@ class Pipeline:
         self.friction_factor_method = friction_factor_method
 
     def update_gas_mixture(self):
-        if self.flow_rate >= 0:
-            self.gas_mixture = self.inlet.gas_mixture
-        else:
-            self.gas_mixture = self.outlet.gas_mixture
+        self.gas_mixture = self.inlet.gas_mixture
 
     def calc_average_temperature(self):
         """
@@ -333,7 +330,7 @@ class Resistance:
         self.gas_mixture = self.inlet.gas_mixture
 
     def update_gas_mixture(self):
-        if self.flow_rate >= 0:
+        if self.flow_rate is None or self.flow_rate >=0:
             self.gas_mixture = self.inlet.gas_mixture
         else:
             self.gas_mixture = self.outlet.gas_mixture
@@ -432,7 +429,7 @@ class LinearResistance:
         self.gas_mixture = self.inlet.gas_mixture
 
     def update_gas_mixture(self):
-        if self.flow_rate >= 0:
+        if self.flow_rate in None or self.flow_rate >= 0:
             self.gas_mixture = self.inlet.gas_mixture
         else:
             self.gas_mixture = self.outlet.gas_mixture
@@ -523,7 +520,7 @@ class ShortPipe:
         self.gas_mixture = self.inlet.gas_mixture
 
     def update_gas_mixture(self):
-        if self.flow_rate >= 0:
+        if self.flow_rate in None or self.flow_rate >= 0:
             self.gas_mixture = self.inlet.gas_mixture
         else:
             self.gas_mixture = self.outlet.gas_mixture
