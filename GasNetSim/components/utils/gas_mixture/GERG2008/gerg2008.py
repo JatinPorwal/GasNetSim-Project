@@ -1,3 +1,12 @@
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 3/27/24, 11:22 PM
+#     Last change by yifei
+#    *****************************************************************************
+
 # """
 # Version 2.01 of routines for the calculation of thermodynamic
 # properties from the AGA 8 Part 2 GERG-2008 equation of state.
@@ -102,6 +111,7 @@ import math
 from collections import Counter
 from .setup import *
 from copy import deepcopy
+from scipy.constants import atm
 
 from GasNetSim.components.utils.gas_mixture.GERG2008.setup import *
 
@@ -145,7 +155,7 @@ The compositions in the x() array use the following order and must be sent as mo
 
 
 class GasMixtureGERG2008:
-    def __init__(self, P_Pa, T_K, composition):
+    def __init__(self, P_Pa, T_K, composition, use_numba=True):
         # Input parameters
         self.dPdT = None
         self.d2PdD2 = None
@@ -153,34 +163,72 @@ class GasMixtureGERG2008:
         self.P = P_Pa / 1000  # Pa -> kPa
 
         self.T = T_K
-        self.x = self.CovertCompositionGERG(composition=composition)  # gas composition
 
-        # Calculated properties
-        self.MolarMass = self.MolarMassGERG()
-        # self.MolarDensity = self.DensityGERG(iFlag=0)[2]
-        self.MolarDensity = 0
-        self.rho = 0
-        self.SG = 1
-        self.Z = 1
-        self.energy = 0
-        self.enthalpy = 0
-        self.entropy = 0
-        self.Cv_molar = 0  # molar isochoric heat capacity [J/mol-K]
-        self.Cp_molar = 0  # molar isobaric heat capacity [J/mol-K]
-        self.Cp = 0  # isochoric heat capacity [J/kg-K]
-        self.Cv = 0  # isobaric heat capacity [J/kg-K]
-        self.c = 0  # speed of sound [m/s]
-        self.gibbs_energy = 0  # Gibbs energy [J/mol]
+        if use_numba:
+            from .gerg2008_numba import CovertCompositionGERG_numba
+            self.x = np.array(CovertCompositionGERG_numba(composition=composition))  # gas composition
+        else:
+            self.x = self.CovertCompositionGERG(composition=composition)  # gas composition
 
-        self.JT = 1  # Joule-Thomson coefficient [K/Pa]
-        self.isentropic_exponent = 0  # Isentropic exponent
+        # # Calculated properties
+        # self.MolarMass = self.MolarMassGERG()
+        # # self.MolarDensity = self.DensityGERG(iFlag=0)[2]
+        # self.MolarDensity = 0
+        # self.rho = 0
+        # self.SG = 1
+        # self.Z = 1
+        # self.energy = 0
+        # self.enthalpy = 0
+        # self.entropy = 0
+        # self.Cv_molar = 0  # molar isochoric heat capacity [J/mol-K]
+        # self.Cp_molar = 0  # molar isobaric heat capacity [J/mol-K]
+        # self.Cp = 0  # isochoric heat capacity [J/kg-K]
+        # self.Cv = 0  # isobaric heat capacity [J/kg-K]
+        # self.c = 0  # speed of sound [m/s]
+        # self.gibbs_energy = 0  # Gibbs energy [J/mol]
+        #
+        # self.JT = 1  # Joule-Thomson coefficient [K/Pa]
+        # self.isentropic_exponent = 0  # Isentropic exponent
+        #
+        # self.R_specific = 0
+        # self.viscosity = 2e-4  # TODO add function
 
-        self.R_specific = 0
-        self.viscosity = 2e-4  # TODO add function
+        if use_numba:
+            from .gerg2008_numba import PropertiesGERG_numba
+            properties = PropertiesGERG_numba(T=self.T, P=self.P, x=self.x)
+            self.MolarMass = properties[0]
+            # self.MolarDensity = self.DensityGERG(iFlag=0)[2]
+            self.MolarDensity = properties[1]
+            self.rho = properties[17] / 1e3  # kg/m3
+            self.standard_density = self.rho * self.T / self.P * atm / 288.15  # TODO: define global constants
+            self.SG = properties[18]
+            self.Z = properties[2]
+            self.dPdD = properties[3]
+            self.d2PdD2 = properties[4]
+            self.dPdT = properties[5]
+            self.energy = properties[6]
+            self.enthalpy = properties[7]
+            self.entropy = properties[8]
+            self.Cv_molar = properties[9]  # molar isochoric heat capacity [J/mol-K]
+            self.Cp_molar = properties[10]  # molar isobaric heat capacity [J/mol-K]
+            self.Cp = properties[12]  # isochoric heat capacity [J/kg-K]
+            self.Cv = properties[11]  # isobaric heat capacity [J/kg-K]
+            self.c = properties[13]  # speed of sound [m/s]
+            self.gibbs_energy = properties[14]  # Gibbs energy [J/mol]
 
-        self.PropertiesGERG()
+            self.JT = properties[15]  # Joule-Thomson coefficient [K/Pa]
+            self.isentropic_exponent = properties[16]  # Isentropic exponent
 
-        self.HHV = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="volume")
+            self.R_specific = properties[19]
+            self.viscosity = 2e-4  # TODO add function
+
+        else:
+            self.PropertiesGERG()
+            self.standard_density = self.rho * self.T / self.P * atm / 288.15  # TODO: define global constants
+
+            self.HHV_J_per_m3 = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="volume")
+            self.HHV_J_per_sm3 = self.HHV_J_per_m3 / self.P / 1000 * atm / 288.15 * self.T
+            self.HHV_J_per_kg = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="mass")
 
     def CalculateHeatingValue(self, comp, hhv, parameter):
 
@@ -329,9 +377,9 @@ class GasMixtureGERG2008:
         else:
             # returns heating value in J/m3
             if hhv:
-                heating_value = HHV / self.MolarDensity * 1e3
+                heating_value = HHV * self.MolarDensity * 1e3
             else:
-                heating_value = LHV / self.MolarDensity * 1e3
+                heating_value = LHV * self.MolarDensity * 1e3
 
         return heating_value
 

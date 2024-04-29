@@ -1,11 +1,11 @@
-#  #!/usr/bin/env python
-#  -*- coding: utf-8 -*-
-#  ******************************************************************************
-#    Copyright (c) 2022.
-#    Developed by Yifei Lu
-#    Last change on 1/17/22, 11:20 AM
-#    Last change by yifei
-#   *****************************************************************************
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 2/26/24, 2:07 PM
+#     Last change by yifei
+#    *****************************************************************************
 from .utils.gas_mixture import *
 from ..utils.exception import InitializationError
 from scipy.constants import bar, atm
@@ -112,7 +112,7 @@ class Node:
         # HHV = calc_heating_value(self.gas_mixture)
         HHV = self.gas_mixture.heating_value(hhv=True, parameter="mass")
         gas_comp = self.get_mole_fraction()
-        self.volumetric_flow = self.energy_flow / HHV * 1e6 / self.gas_mixture.standard_density
+        self.volumetric_flow = self.energy_flow / HHV * 1e6 / self.gas_mixture.gerg2008_mixture.standard_density
 
     def convert_volumetric_to_energy_flow(self):
         """
@@ -121,7 +121,7 @@ class Node:
         """
         HHV = self.gas_mixture.heating_value(hhv=True, parameter="mass")
         gas_comp = self.get_mole_fraction()
-        self.energy_flow = self.volumetric_flow * HHV / 1e6 * self.gas_mixture.standard_density
+        self.energy_flow = self.volumetric_flow * HHV / 1e6 * self.gas_mixture.gerg2008_mixture.standard_density
 
 
 if __name__ == "__main__":
