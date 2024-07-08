@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 4/29/24, 1:52 PM
+#     Last change on 5/27/24, 11:23 PM
 #     Last change by yifei
 #    *****************************************************************************
 import logging
@@ -144,7 +144,7 @@ class Pipeline:
                                   rho=self.gas_mixture.density, viscosity=self.gas_mixture.viscosity)
         else:
             # if the flow rate cannot be calculated yet, set the Reynolds number to be 1e7
-            return None
+            return 1e7
 
     def calculate_pipe_friction_factor(self):
         """
@@ -263,7 +263,7 @@ class Pipeline:
         slope_correction = self.calc_pipe_slope_correction()
         tmp = self.calculate_coefficient_for_iteration() * self.conversion_factor
 
-        self.flow_rate = flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * tmp
+        # self.flow_rate = flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * tmp
 
         return flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * tmp
 
@@ -271,7 +271,7 @@ class Pipeline:
         p1 = self.inlet.pressure
         p2 = self.outlet.pressure
         slope_corr = self.calc_pipe_slope_correction()
-        pipeline_coefficient = self.calculate_coefficient_for_iteration()  * self.conversion_factor
+        pipeline_coefficient = self.calculate_coefficient_for_iteration() * self.conversion_factor
         tmp = (abs(p1 ** 2 - p2 ** 2 - slope_corr)) ** (-0.5)
 
         if is_inlet:
