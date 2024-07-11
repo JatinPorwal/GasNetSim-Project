@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/26/24, 2:05 PM
+#     Last change on 7/11/24, 3:28 PM
 #     Last change by yifei
 #    *****************************************************************************
 from collections import OrderedDict
@@ -79,13 +79,12 @@ class GasMixture:
     @property
     def standard_density(self):
         if self.method == "PREOS":
-            return GasMixtureGERG2008(P_Pa=1*atm,
-                                      T_K=15+zero_Celsius,
-                                      composition=self.composition).rho
-        elif self.method == "GERG-2008":
             return Mixture(P=1*atm,
                            T=15+zero_Celsius,
                            zs=self.composition).rho
+
+        elif self.method == "GERG-2008":
+            return self.gerg2008_mixture.standard_density
 
     @property
     def joule_thomson_coefficient(self):
