@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 3/27/24, 11:22 PM
+#     Last change on 7/11/24, 1:31 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -226,9 +226,9 @@ class GasMixtureGERG2008:
             self.PropertiesGERG()
             self.standard_density = self.rho * self.T / self.P * atm / 288.15  # TODO: define global constants
 
-            self.HHV_J_per_m3 = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="volume")
-            self.HHV_J_per_sm3 = self.HHV_J_per_m3 / self.P / 1000 * atm / 288.15 * self.T
-            self.HHV_J_per_kg = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="mass")
+        self.HHV_J_per_m3 = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="volume")
+        self.HHV_J_per_sm3 = self.HHV_J_per_m3 / self.P / 1000 * atm / 288.15 * self.T
+        self.HHV_J_per_kg = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="mass")
 
     def CalculateHeatingValue(self, comp, hhv, parameter):
 
