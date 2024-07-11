@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/11/24, 1:31 PM
+#     Last change on 7/11/24, 1:36 PM
 #     Last change by yifei
 #    *****************************************************************************
 from collections import OrderedDict
@@ -114,7 +114,6 @@ class GasMixture:
         elif self.method == "GERG-2008":
             return self.gerg2008_mixture.R_specific
 
-    @property
     def heating_value(self, hhv=True, parameter="volume"):
         if self.method == "PREOS":
             return calc_heating_value(self, heating_value_type=type)

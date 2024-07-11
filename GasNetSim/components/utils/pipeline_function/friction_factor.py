@@ -3,10 +3,11 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/8/24, 9:28 PM
+#     Last change on 7/11/24, 1:36 PM
 #     Last change by yifei
 #    *****************************************************************************
 import numpy as np
+import math
 from scipy.optimize import fsolve
 from scipy.constants import atm
 import warnings
