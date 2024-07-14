@@ -1,19 +1,20 @@
-#  #!/usr/bin/env python
-#  -*- coding: utf-8 -*-
-#  ******************************************************************************
-#    Copyright (c) 2021.
-#    Developed by Yifei Lu
-#    Last change on 12/21/21, 4:22 PM
-#    Last change by yifei
-#   *****************************************************************************
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 7/11/24, 3:28 PM
+#     Last change by yifei
+#    *****************************************************************************
 from collections import OrderedDict
 import logging
 from scipy.constants import atm, zero_Celsius
 
 # from .thermo.thermo import Mixture
-from thermo import Mixture
+# from thermo import Mixture
 from .GERG2008.gerg2008 import *
-from .heating_value import calc_heating_value
+from .GERG2008.gerg2008_constants import *
+# from .heating_value import calc_heating_value
 
 
 class GasMixture:
@@ -78,13 +79,12 @@ class GasMixture:
     @property
     def standard_density(self):
         if self.method == "PREOS":
-            return GasMixtureGERG2008(P_Pa=1*atm,
-                                      T_K=15+zero_Celsius,
-                                      composition=self.composition).rho
-        elif self.method == "GERG-2008":
             return Mixture(P=1*atm,
                            T=15+zero_Celsius,
                            zs=self.composition).rho
+
+        elif self.method == "GERG-2008":
+            return self.gerg2008_mixture.standard_density
 
     @property
     def joule_thomson_coefficient(self):

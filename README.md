@@ -16,7 +16,10 @@ Future work will be carried out to include gas storage units and to take into ac
 the dynamic behavior of the gas network so that short-term simulations can be performed.
 
 ## Installation
-Currently, it is only supported using source files.
+Currently, it is only supported using source files. Using following commands to install the package in editable mode.
+
+  - ``pip install -e .``
+  - ``pip install -r ./requirements.txt``
 
 ## License
 
@@ -34,7 +37,7 @@ The project is released under the terms of the [MPL 2.0](https://mozilla.org/MPL
 - ``setuptools``>=60.9.3
 - ``requests``>=2.25.1
 - ``pyparsing``~=3.0.7
-- ``cantera``~=2.6.0
+- ``cantera``~=3.0.0
 - ``thermo``~=0.2.23
 - ``tqdm``>=4.64.1
 - ``seaborn``>=0.12.2

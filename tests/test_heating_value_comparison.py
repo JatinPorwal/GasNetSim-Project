@@ -1,3 +1,12 @@
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 2/24/24, 5:52 PM
+#     Last change by yifei
+#    *****************************************************************************
+
 from numpy.testing import assert_almost_equal
 from collections import OrderedDict
 from scipy.constants import bar
@@ -25,8 +34,8 @@ def heating_value(fuel):
     gas.TPX = None, None, X_products
     Y_H2O = gas["H2O"].Y[0]
     h2 = gas.enthalpy_mass
-    LHV = -(h2 - h1) / Y_fuel / 1e6
-    HHV = -(h2 - h1 + (h_liquid - h_gas) * Y_H2O) / Y_fuel / 1e6
+    LHV = -(h2 - h1) / Y_fuel
+    HHV = -(h2 - h1 + (h_liquid - h_gas) * Y_H2O) / Y_fuel
     return LHV, HHV
 
 if __name__ == '__main__':
@@ -58,7 +67,7 @@ if __name__ == '__main__':
     HHV_gerg2008_vol = []
     gas_comp = {'methane': 1, 'ethane': 1, 'propane': 1, 'hydrogen': 1, 'carbon monoxide': 1}
     for key, value in gas_comp.items():
-        gas_mixture = GasMixtureGERG2008(P=1 * bar, T=298, composition={key: value})
+        gas_mixture = GasMixtureGERG2008(P_Pa=1 * bar, T_K=298, composition={key: value})
         HHV = gas_mixture.CalculateHeatingValue({key: value}, hhv=True, parameter='mass')
         LHV = gas_mixture.CalculateHeatingValue({key: value}, hhv=False, parameter='mass')
         LHV_gerg2008_mass.append(LHV)
@@ -67,10 +76,10 @@ if __name__ == '__main__':
         LHV = gas_mixture.CalculateHeatingValue({key: value}, hhv=False, parameter='vol')
         LHV_gerg2008_vol.append(LHV)
         HHV_gerg2008_vol.append(HHV)
-    LHV_gerg2008_mass = [x / 1000 for x in LHV_gerg2008_mass]
-    LHV_gerg2008_vol = [x / 1000 for x in LHV_gerg2008_vol]
-    HHV_gerg2008_mass = [x / 1000 for x in HHV_gerg2008_mass]
-    HHV_gerg2008_vol = [x / 1000 for x in HHV_gerg2008_vol]
+    LHV_gerg2008_mass = [x for x in LHV_gerg2008_mass]
+    LHV_gerg2008_vol = [x for x in LHV_gerg2008_vol]
+    HHV_gerg2008_mass = [x for x in HHV_gerg2008_mass]
+    HHV_gerg2008_vol = [x for x in HHV_gerg2008_vol]
 
     LHV_df_mass = pd.DataFrame(
         {'molecule': fuels,

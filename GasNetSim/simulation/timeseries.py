@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 from ..components.network import Network
 from ..components.utils.utils import plot_network_demand_distribution
+from ..components.utils.cuda_support import *
 
 
 logging.basicConfig(level=logging.INFO)
@@ -50,9 +51,11 @@ def check_profiles(profiles):
         # df['time'] = df['time'].apply(lambda x: pd.Timestamp.now() + pd.Timedelta(seconds=x))
 
 
-def run_snapshot(network, tol=0.01):
+def run_snapshot(network, tol=0.01, use_cuda=False):
     # plot_network_demand_distribution(network)
-    network = network.simulation(tol=tol)
+    if use_cuda:
+        is_cuda_available()
+    network = network.simulation(tol=tol, use_cuda=use_cuda)
     return network
 
 

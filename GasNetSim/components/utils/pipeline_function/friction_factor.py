@@ -1,41 +1,54 @@
-#  #!/usr/bin/env python
-#  -*- coding: utf-8 -*-
-#  ******************************************************************************
-#    Copyright (c) 2022.
-#    Developed by Yifei Lu
-#    Last change on 1/17/22, 11:17 AM
-#    Last change by yifei
-#   *****************************************************************************
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 7/11/24, 1:36 PM
+#     Last change by yifei
+#    *****************************************************************************
 import numpy as np
 import math
 from scipy.optimize import fsolve
+from scipy.constants import atm
 import warnings
 
 
 def reynold_number(diameter, velocity, rho, viscosity):
     """
+    Calculate Reynolds number
 
     :param diameter: pipe diameter (m)
     :param velocity: fluid velocity (m/s)
     :param rho: fluid density (kg/m3)
-    :param viscosity: fluid viscosity(kg/(m*s))
-    :return: Reynold number
+    :param viscosity: fluid viscosity (Pa*s or kg/(m*s))
+    :return: Reynolds number (dimensionless)
     """
-    return diameter * velocity * rho / viscosity
+    return (diameter * abs(velocity) * rho) / viscosity
 
 
-def reynold_number_simp(diameter, sg, q, viscosity):
+def reynold_number_simple(diameter, p, sg, q, viscosity):
     """
     A simplified method to calculate the Reynolds number based on the volumetric flow rate
     :param diameter: pipe diameter (m)
+    :param p: pressure (Pa)
     :param sg: gas specific gravity
     :param q: gas flow rate (sm3/s)
     :param viscosity: fluid viscosity (Pa*s)
     :return:
     """
-    pb = 101.325  # kPa
-    tb = 288.15  # K
-    return 49.44 * q * sg * pb / (viscosity * diameter * tb) * (24*3600)
+    # pb = 101.325  # kPa
+    # tb = 288.15  # K
+    # return 49.44 * abs(q) * sg * pb / (viscosity * diameter * tb) * (24*3600)
+
+    rho_air = 1.225  # Density of air at standard conditions (kg/m3)
+
+    # Calculate density of the gas
+    rho_gas = sg * rho_air * p / atm
+
+    # Calculate Reynolds number
+    re = (4. * q * rho_gas) / (math.pi * diameter * viscosity)
+
+    return re
 
 
 def hagen_poiseuille(N_re):
@@ -100,43 +113,50 @@ def weymouth(d):
 
 
 if __name__ == "__main__":
-    from thermo import Mixture
-    from collections import OrderedDict
     import math
     import matplotlib.pyplot as plt
+    from scipy.constants import bar
 
-    gas_comp = OrderedDict([('methane', 0.96522),
-                            ('nitrogen', 0.00259),
-                            ('carbon dioxide', 0.00596),
-                            ('ethane', 0.01819),
-                            ('propane', 0.0046),
-                            ('isobutane', 0.00098),
-                            ('butane', 0.00101),
-                            ('2-methylbutane', 0.00047),
-                            ('pentane', 0.00032),
-                            ('hexane', 0.00066)])
+    from GasNetSim.components.utils.gas_mixture.gas_mixture import GasMixture
+    from collections import OrderedDict
 
-    Nre_res = list()
-    Nre_res_simp = list()
+    gas_comp = OrderedDict([
+        ('methane', 0.96522),
+        ('nitrogen', 0.00259),
+        ('carbon dioxide', 0.00596),
+        ('ethane', 0.01819),
+        ('propane', 0.0046),
+        ('isobutane', 0.00098),
+        ('butane', 0.00101),
+        ('2-methylbutane', 0.00047),
+        ('pentane', 0.00032),
+        ('hexane', 0.00066)
+    ])
+
+    Nre_res = []
+    Nre_res_simp = []
 
     for p in range(1, 100):
-        gas_mixture = Mixture(T=288.15, P=p*101325, zs=gas_comp)
+        gas_mixture = GasMixture(temperature=288.15, pressure=p * bar, composition=gas_comp)
 
-        gas_mix_viscosity = gas_mixture.mu
-        gas_mix_density = gas_mixture.rho
+        gas_mix_viscosity = gas_mixture.viscosity
+        gas_mix_density = gas_mixture.density
         pipe_diameter = 0.76  # m
-        volumetric_flow_rate = 20  # m3/s
-        flow_velocity = volumetric_flow_rate / (math.pi * (pipe_diameter/2)**2) * p # m/s
-        gas_mix_specific_gravity = gas_mixture.SG
+        volumetric_flow_rate = 20  # sm3/s
+        real_volumetric_flow_rate = 20 / p  # Simple conversion to m3/s
+        flow_velocity = real_volumetric_flow_rate / (math.pi * (pipe_diameter / 2) ** 2)  # m/s
+        gas_mix_specific_gravity = gas_mixture.specific_gravity
 
         Nre = reynold_number(pipe_diameter, flow_velocity, gas_mix_density, gas_mix_viscosity)
-        Nre_simple = reynold_number_simp(pipe_diameter*1000, gas_mix_specific_gravity, volumetric_flow_rate, gas_mix_viscosity)
-        # print("Reynolds' number is: {}".format(Nre))
-        # print("Reynolds' number calculated with simplified method is: {}".format(Nre_simple))
+        Nre_simple = reynold_number_simple(pipe_diameter, p*bar, gas_mix_specific_gravity, real_volumetric_flow_rate, gas_mix_viscosity)
+
         Nre_res.append(Nre)
         Nre_res_simp.append(Nre_simple)
 
     plt.figure()
-    plt.plot(Nre_res)
-    plt.plot(Nre_res_simp)
+    plt.plot(Nre_res, label='Reynolds number (detailed)')
+    plt.plot(Nre_res_simp, label='Reynolds number (simplified)')
+    plt.xlabel('Pressure (bar)')
+    plt.ylabel('Reynolds Number')
+    plt.legend()
     plt.show()

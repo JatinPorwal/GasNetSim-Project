@@ -1,11 +1,11 @@
-#  #!/usr/bin/env python
-#  -*- coding: utf-8 -*-
-#  ******************************************************************************
-#    Copyright (c) 2022.
-#    Developed by Yifei Lu
-#    Last change on 1/17/22, 11:21 AM
-#    Last change by yifei
-#   *****************************************************************************
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 4/29/24, 11:02 AM
+#     Last change by yifei
+#    *****************************************************************************
 
 import numpy as np
 from typing import Tuple
@@ -18,11 +18,20 @@ from scipy import optimize
 from scipy.sparse import coo_matrix, csc_matrix, csr_matrix
 from collections import OrderedDict
 
-from .utils.gas_mixture.heating_value import *
+# from .utils.gas_mixture.heating_value import *
 from .utils.utils import *
 from .node import *
 from .pipeline import *
 from .utils import *
+
+try:
+    import cupy as cp
+    import cupy.sparse.linalg as cpsplinalg
+except ImportError:
+    # logging.warning(f"CuPy is not installed or not available!")
+    print(f"CuPy is not installed or not available!")
+
+from .utils.cuda_support import create_matrix_of_zeros, list_to_array
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -106,9 +115,9 @@ class Network:
         plt.show()
         return None
 
-    def mapping_of_connections(self):
+    def mapping_of_connections(self, use_cuda=False, sparse_matrix=False):
         n_nodes = len(self.nodes.values())
-        mapping = np.zeros((n_nodes, n_nodes))
+        mapping = create_matrix_of_zeros(n_nodes, use_cuda=use_cuda, sparse_matrix=sparse_matrix)
         for i_connection, connection in self.connections.items():
             i = connection.inlet_index - 1
             j = connection.outlet_index - 1
@@ -186,7 +195,7 @@ class Network:
     #             # node.flow /= (h2_fraction * 12.09 + (1-h2_fraction) * 38.28)
     #     return None
 
-    def create_connection_matrix(self, sparse_matrix=False):
+    def create_connection_matrix(self, use_cuda=False, sparse_matrix=False):
         # TODO change the index number
         n_nodes = len(self.nodes.values())
         pipelines = self.pipelines
@@ -199,7 +208,7 @@ class Network:
             data = list()
 
         # Build a matrix to show the connection between nodes
-        connection = np.zeros((n_nodes, n_nodes))
+        connection = create_matrix_of_zeros(n_nodes, use_cuda=use_cuda, sparse_matrix=sparse_matrix)
 
         if pipelines is not None:
             for pipe in pipelines.values():
@@ -258,6 +267,8 @@ class Network:
         resistance = list()
         if self.pipelines is not None:
             pipeline_resistance = [[x.inlet_index, x.outlet_index, x.resistance, x.outlet.volumetric_flow]
+                                   if x.outlet.volumetric_flow is not None
+                                   else [x.inlet_index, x.outlet_index, x.resistance, x.inlet.volumetric_flow]  # outlet is reference node
                                    for x in self.pipelines.values()]
             resistance += pipeline_resistance
         if self.resistances is not None:
@@ -382,7 +393,7 @@ class Network:
 
         return nodal_flow_init, pressure_init, temperature_init
 
-    def jacobian_matrix(self):
+    def jacobian_matrix(self, use_cuda=False, sparse_matrix=False):
 
         connections = self.connections
         nodes = self.nodes
@@ -393,8 +404,8 @@ class Network:
 
         n_junction_nodes = len(self.junction_nodes)
 
-        jacobian_mat = np.zeros((n_nodes, n_nodes), dtype=float)
-        flow_mat = np.zeros((n_nodes, n_nodes), dtype=float)
+        jacobian_mat = create_matrix_of_zeros(n_nodes, use_cuda=use_cuda, sparse_matrix=sparse_matrix)
+        flow_mat = create_matrix_of_zeros(n_nodes, use_cuda=use_cuda, sparse_matrix=sparse_matrix)
 
         for connection in connections.values():
             i = connection.inlet_index - 1
@@ -517,7 +528,7 @@ class Network:
 
         return x
 
-    def simulation(self, max_iter=100, tol=0.001, underrelaxation_factor=2.):
+    def simulation(self, max_iter=100, tol=0.001, underrelaxation_factor=2., use_cuda=False, sparse_matrix=False):
         logging.debug([x.volumetric_flow for x in self.nodes.values()])
 
         n_nodes = len(self.nodes.keys())
@@ -529,9 +540,9 @@ class Network:
         n_iter = 0
         # n_non_ref_nodes = n_nodes - len(ref_nodes)
 
-        f_target = np.array(init_f)
-        p = np.array(init_p)
-        t = np.array(init_t)
+        f_target = list_to_array(init_f, use_cuda=use_cuda)
+        p = list_to_array(init_p, use_cuda=use_cuda)
+        t = list_to_array(init_t, use_cuda=use_cuda)
         logging.info(f'Initial pressure: {p}')
         logging.info(f'Initial flow: {f_target}')
 
@@ -549,7 +560,7 @@ class Network:
         err = tol + 1  # ensure the first loop will be executed
 
         while err > tol:
-            j_mat, f_mat = self.jacobian_matrix()
+            j_mat, f_mat = self.jacobian_matrix(use_cuda=use_cuda, sparse_matrix=sparse_matrix)
             mapping_connections = self.mapping_of_connections()
             inflow_xi, inflow_temp = calculate_nodal_inflow_states(self.nodes, self.connections,
                                                                    mapping_connections, f_mat)
@@ -567,23 +578,32 @@ class Network:
                         logging.warning(i_node)
                         logging.warning(nodal_gas_inflow_composition[i_node])
 
-            nodal_flow = np.dot(f_mat, np.ones(n_nodes))
+            if use_cuda:
+                nodal_flow = cp.sum(f_mat, axis=1)
+            else:
+                nodal_flow = np.sum(f_mat, axis=1)
 
             delta_flow = f_target - nodal_flow
 
-            delta_flow = [delta_flow[i] for i in range(len(delta_flow)) if i + 1 not in self.non_junction_nodes]
+            delta_flow = list_to_array([delta_flow[i] for i in range(len(delta_flow)) if i + 1 not in self.non_junction_nodes], use_cuda=use_cuda)
 
             # Update volumetric flow rate target
             for n in self.nodes.values():
                 n.convert_energy_to_volumetric_flow()
-            f_target = np.array([x.volumetric_flow if x.volumetric_flow is not None else 0 for x in self.nodes.values()])
+            f_target = list_to_array([x.volumetric_flow if x.volumetric_flow is not None else 0 for x in self.nodes.values()], use_cuda=use_cuda)
 
-            delta_p = np.linalg.solve(j_mat, delta_flow)  # np.linalg.solve() uses LU decomposition as default
+            if use_cuda:
+                delta_p = cp.linalg.solve(j_mat, delta_flow)
+            else:
+                delta_p = np.linalg.solve(j_mat, delta_flow)  # np.linalg.solve() uses LU decomposition as default
             delta_p /= underrelaxation_factor  # divided by 2 to ensure better convergence
             logging.debug(delta_p)
 
             for i in self.non_junction_nodes:
-                delta_p = np.insert(delta_p, i-1, 0)  # TODO check this
+                if use_cuda:
+                    delta_p = cp.concatenate((delta_p[:i - 1], cp.array([0]), delta_p[i - 1:]))
+                else:
+                    delta_p = np.insert(delta_p, i-1, 0)  # TODO check this
 
             p += delta_p  # update nodal pressure list
 
@@ -599,13 +619,20 @@ class Network:
 
             n_iter += 1
 
-            target_flow = np.array([f_target[i] for i in range(len(f_target)) if i + 1 not in self.non_junction_nodes])
+            target_flow = list_to_array([f_target[i] for i in range(len(f_target)) if i + 1 not in self.non_junction_nodes], use_cuda=use_cuda)
             err = max([abs(x) for x in delta_flow])
 
             logging.debug(max([abs(x) for x in (delta_flow/target_flow)]))
             logging.debug(delta_p)
+            self.update_connection_flow_rate()
+
+            # plt.figure()
+            # plt.plot(delta_flow)
+            # plt.show()
 
             # print(f"Current iteration number: {n_iter}")
+            # print([x.flow_rate for x in self.pipelines.values()])
+            # print([x.temperature for x in self.nodes.values()])
             # print(f"Volumetric flow target: {f_target}")
             # print(f"Error between calculated flow and the target flow: {delta_flow}")
             # print(f"Pressure change after each iteration: {delta_p}")
@@ -621,6 +648,7 @@ class Network:
 
         for i_node in self.non_junction_nodes:
             self.nodes[i_node].volumetric_flow = nodal_flow[i_node - 1]
+            self.nodes[i_node].convert_volumetric_to_energy_flow()
 
         # output connection
         for i_connection, connection in self.connections.items():
