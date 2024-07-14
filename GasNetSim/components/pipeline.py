@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 4/29/24, 1:52 PM
+#     Last change on 5/27/24, 11:23 PM
 #     Last change by yifei
 #    *****************************************************************************
 import logging
@@ -28,7 +28,7 @@ class Pipeline:
 
     def __init__(self, inlet: Node, outlet: Node, diameter, length, efficiency=0.85, roughness=0.000015,
                  ambient_temp=15+zero_Celsius, ambient_pressure=1*atm, heat_transfer_coefficient=3.69, valve=0,
-                 friction_factor_method='chen'):
+                 friction_factor_method='chen', conversion_factor=1.):
         """
 
         :param inlet: Gas pipe inlet node
@@ -56,6 +56,7 @@ class Pipeline:
         self.valve = valve
         self.gas_mixture = self.inlet.gas_mixture
         self.friction_factor_method = friction_factor_method
+        self.conversion_factor = conversion_factor
 
     def update_gas_mixture(self):
         if self.flow_rate is None or self.flow_rate >= 0:
@@ -135,7 +136,10 @@ class Pipeline:
         :return: Reynolds number
         """
         if self.flow_rate is not None:
-            flow_velocity = self.calc_flow_velocity()
+            flow_velocity = abs(self.calc_flow_velocity() / self.conversion_factor)
+            # if np.isnan(reynold_number(diameter=self.diameter, velocity=flow_velocity,
+            #                       rho=self.gas_mixture.density, viscosity=self.gas_mixture.viscosity)):
+            #     print(self.flow_rate, self.diameter, flow_velocity, self.gas_mixture.density, self.gas_mixture.viscosity)
             return reynold_number(diameter=self.diameter, velocity=flow_velocity,
                                   rho=self.gas_mixture.density, viscosity=self.gas_mixture.viscosity)
         else:
@@ -160,6 +164,10 @@ class Pipeline:
             raise ValueError(f'Friction calculation method {method} is not defined! Choose on from '
                              f'{implemented_methods} or implement you own in friction_factor.py')
 
+        if self.calculate_reynolds_number() is None:
+            warnings.warn("There is no Reynolds number available, using 0.01 for friction factor!")
+            return 0.01
+
         if method == 'weymouth':
             return 0.0093902 / (self.diameter ** (1 / 3))
         elif method == 'chen':
@@ -169,7 +177,7 @@ class Pipeline:
         elif method == 'colebrook-white':
             return colebrook_white(epsilon=self.roughness, d=self.diameter, N_re=self.calculate_reynolds_number())
         elif method == "hagen-poiseuille":
-            hagen_poiseuille(N_re=self.calculate_reynolds_number())
+            return hagen_poiseuille(N_re=self.calculate_reynolds_number())
 
     def calculate_fictitious_resistance(self):
         tb = STANDARD_TEMPERATURE
@@ -253,7 +261,9 @@ class Pipeline:
         p2 = self.outlet.pressure
 
         slope_correction = self.calc_pipe_slope_correction()
-        tmp = self.calculate_coefficient_for_iteration()
+        tmp = self.calculate_coefficient_for_iteration() * self.conversion_factor
+
+        # self.flow_rate = flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * tmp
 
         return flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * tmp
 
@@ -261,7 +271,7 @@ class Pipeline:
         p1 = self.inlet.pressure
         p2 = self.outlet.pressure
         slope_corr = self.calc_pipe_slope_correction()
-        pipeline_coefficient = self.calculate_coefficient_for_iteration()
+        pipeline_coefficient = self.calculate_coefficient_for_iteration() * self.conversion_factor
         tmp = (abs(p1 ** 2 - p2 ** 2 - slope_corr)) ** (-0.5)
 
         if is_inlet:
@@ -285,7 +295,7 @@ class Pipeline:
         Calculate pipe outlet temperature based on the physical law of flow temperature loss
         :return: Pipe outlet temperature
         """
-        qm = abs(self.calc_gas_mass_flow())
+        qm = abs(self.calc_gas_mass_flow()) / self.conversion_factor
         friction = self.calculate_pipe_friction_factor()
         if qm is not None and friction is not None and self.gas_mixture.heat_capacity_constant_pressure is not None:
             beta = calculate_beta_coefficient(ul=3.69,
