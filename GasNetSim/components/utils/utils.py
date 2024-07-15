@@ -1,9 +1,9 @@
 #   #!/usr/bin/env python
 #   -*- coding: utf-8 -*-
 #   ******************************************************************************
-#     Copyright (c) 2022.
+#     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 3/28/22, 12:44 AM
+#     Last change on 7/15/24, 2:54 PM
 #     Last change by yifei
 #    *****************************************************************************
 import math
@@ -83,6 +83,37 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_
     else:
         nodal_total_inflow = np.sum(np.where(flow_matrix > 0, flow_matrix, 0), axis=1)
 
+
+def gas_mixture_transportation(connection, time_step):
+    composition_history = connection.composition_history
+    batch_location_history = connection.batch_location_history
+    length = connection.length
+    velocity = connection.flow_velocity
+    if velocity is None:
+        velocity = 0
+    if velocity >= 0:
+        outlet_composition = connection.outlet.gas_mixture.composition
+    else:
+        outlet_composition = connection.inlet.gas_mixture.composition
+
+    while batch_location_history[0] >= length:  # if the head of a batch reached the end of the pipeline
+        outlet_composition = composition_history[0]
+        composition_history, batch_location_history = composition_history[1:], batch_location_history[1:]
+
+    batch_location_history = np.append(batch_location_history, 0)
+    composition_history = np.append(composition_history, connection.inlet.gas_mixture.composition)
+    batch_location_history += time_step * velocity
+
+    # update connection composition and batch location history
+    connection.composition_history = composition_history
+    connection.batch_location_history = batch_location_history
+    return outlet_composition, connection
+
+
+def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_matrix, composition_tracking=False,
+                                  time_step=0):
+    nodal_total_inflow = np.sum(np.where(flow_matrix > 0, flow_matrix, 0), axis=1)
+
     nodal_gas_inflow_composition = dict()
     nodal_gas_inflow_temperature = dict()
 
@@ -108,11 +139,18 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_
                 inlet_index = inlet_index.item()
             gas_composition = nodes[inlet_index].gas_mixture.composition
             connections[mapping_connections[i_node - 1][inlet_index - 1]].gas_mixture.composition = gas_composition
+            connection = connections[mapping_connections[i_node - 1][inlet_index - 1]]
+            if composition_tracking:
+                gas_composition, connection = gas_mixture_transportation(connection, time_step=time_step)
+            else:
+                gas_composition = nodes[inlet_index].gas_mixture.composition
+            connection.gas_mixture.composition = gas_composition
             inflow_rate = flow_matrix[i_node-1][inlet_index-1]
             inflow_temperature = connections[mapping_connections[i_node-1][inlet_index-1]].calc_pipe_outlet_temp()
 
             # Sum up flow rate * temperature
             total_inflow_temperature_times_flow_rate += inflow_rate * inflow_temperature
+            total_inflow += inflow_rate
 
             # create a OrderedDict to store gas flow fractions
             gas_flow_comp = OrderedDict({gas: comp * inflow_rate for gas, comp in gas_composition.items()})
@@ -122,7 +160,11 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_
                 else:
                     total_inflow_comp[gas] += comp
 
-        nodal_gas_inflow_composition[i_node] = {k: v / total_inflow for k, v in total_inflow_comp.items()}
+        try:
+            nodal_gas_inflow_composition[i_node] = {k: v / total_inflow for k, v in total_inflow_comp.items()}
+        except RuntimeWarning:
+            print(total_inflow_comp)
+            print(total_inflow)
 
         if total_inflow != .0:
             nodal_gas_inflow_temperature[i_node] = total_inflow_temperature_times_flow_rate / total_inflow

@@ -1,9 +1,9 @@
 #   #!/usr/bin/env python
 #   -*- coding: utf-8 -*-
 #   ******************************************************************************
-#     Copyright (c) 2022.
+#     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/28/22, 4:19 PM
+#     Last change on 7/15/24, 3:41 PM
 #     Last change by yifei
 #    *****************************************************************************
 import pandas as pd
@@ -51,11 +51,13 @@ def check_profiles(profiles):
         # df['time'] = df['time'].apply(lambda x: pd.Timestamp.now() + pd.Timedelta(seconds=x))
 
 
-def run_snapshot(network, tol=0.01, use_cuda=False):
+def run_snapshot(network, tol=0.01, use_cuda=False, composition_tracking=False):
     # plot_network_demand_distribution(network)
     if use_cuda:
         is_cuda_available()
-    network = network.simulation(tol=tol, use_cuda=use_cuda)
+    network = network.simulation(tol=tol,
+                                 use_cuda=use_cuda,
+                                 composition_tracking=composition_tracking)
     return network
 
 
@@ -98,7 +100,11 @@ def update_network_topology(network):
     return Network(nodes=remaining_nodes, pipelines=None, resistances=remaining_pipes)
 
 
-def run_time_series(network, file=None, sep=";", profile_type="energy"):
+def run_time_series(network,
+                    file=None,
+                    sep=";",
+                    profile_type="energy",
+                    composition_tracking=False):
     # create a copy of the input network
     full_network = copy.deepcopy(network)
     results_to_save = ["nodal_pressure", "pipeline_flowrate", "nodal_gas_composition"]
@@ -142,9 +148,9 @@ def run_time_series(network, file=None, sep=";", profile_type="energy"):
                     # full_network.nodes[i].demand_type = 'energy'
                 except KeyError:
                     print(f"Node index {i} is not found!")
-        # simplified_network = update_network_topology(full_network)
+        simplified_network = update_network_topology(full_network)
         try:
-            # network = run_snapshot(simplified_network)
+            network = run_snapshot(simplified_network)
             for n in full_network.nodes.values():
                 if n.volumetric_flow is not None and n.volumetric_flow < 0:
                     print(n.volumetric_flow)

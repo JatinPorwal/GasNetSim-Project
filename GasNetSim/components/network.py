@@ -464,6 +464,27 @@ class Network:
 
     def update_node_parameters(self, pressure, flow, temperature):
         for i in range(len(flow)):
+    def simulation(self, composition_tracking=False):
+        logging.debug([x.flow for x in self.nodes.values()])
+        # ref_nodes = self.p_ref_nodes_index
+
+        n_nodes = len(self.nodes.keys())
+        n_non_junction_nodes = len(self.non_junction_nodes)
+        connection_matrix = self.connection_matrix
+
+        init_f, init_p, init_t = self.newton_raphson_initialization()
+
+        max_iter = 100
+        n_iter = 0
+        # n_non_ref_nodes = n_nodes - len(ref_nodes)
+
+        f = np.array(init_f)
+        p = np.array(init_p)
+        t = np.array(init_t)
+        logging.info(f'Initial pressure: {p}')
+        logging.info(f'Initial flow: {f}')
+
+        for i in range(len(init_f)):
             # TODO change to number of non-reference nodes
             self.nodes[i + 1].pressure = pressure[i]
             self.nodes[i + 1].volumetric_flow = flow[i]
@@ -562,6 +583,10 @@ class Network:
         while err > tol:
             j_mat, f_mat = self.jacobian_matrix(use_cuda=use_cuda, sparse_matrix=sparse_matrix)
             mapping_connections = self.mapping_of_connections()
+            nodal_gas_inflow_composition, nodal_gas_inflow_temperature = \
+                calculate_nodal_inflow_states(self.nodes, self.connections, mapping_connections, f_mat,
+                                              composition_tracking=composition_tracking)
+
             inflow_xi, inflow_temp = calculate_nodal_inflow_states(self.nodes, self.connections,
                                                                    mapping_connections, f_mat)
             nodal_gas_inflow_composition = inflow_xi

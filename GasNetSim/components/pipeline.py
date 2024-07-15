@@ -12,6 +12,7 @@ from scipy.constants import bar, atm, zero_Celsius
 
 from .node import *
 from .utils.pipeline_function.flow_rate import *
+from .utils.utils import *
 from .utils.pipeline_function.friction_factor import *
 from .utils.pipeline_function.outlet_temperature import *
 from .utils.gas_mixture.gas_mixture import *
@@ -51,12 +52,17 @@ class Pipeline:
         self.ambient_pressure = ambient_pressure
         self.flow_rate = None
         self.mass_flow_rate = None
+        self.flow_velocity = self.calc_flow_velocity()
         self.roughness = roughness
         self.resistance = self.calculate_fictitious_resistance()
         self.valve = valve
         self.gas_mixture = self.inlet.gas_mixture
         self.friction_factor_method = friction_factor_method
         self.conversion_factor = conversion_factor
+
+        # gas composition tracking
+        self.composition_history = [self.gas_mixture.composition]
+        self.batch_location_history = [0.]
 
     def update_gas_mixture(self):
         if self.flow_rate is None or self.flow_rate >= 0:
@@ -331,6 +337,9 @@ class Pipeline:
         #         print(mole_fraction)
         # return mole_fraction
         return self.gas_mixture.composition
+
+    def gas_mixture_transportation(self):
+        self.batch_location_history
 
 
 class Resistance:
