@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 4/29/24, 11:02 AM
+#     Last change on 7/15/24, 4:00 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -464,32 +464,38 @@ class Network:
 
     def update_node_parameters(self, pressure, flow, temperature):
         for i in range(len(flow)):
-    def simulation(self, composition_tracking=False):
-        logging.debug([x.flow for x in self.nodes.values()])
-        # ref_nodes = self.p_ref_nodes_index
-
-        n_nodes = len(self.nodes.keys())
-        n_non_junction_nodes = len(self.non_junction_nodes)
-        connection_matrix = self.connection_matrix
-
-        init_f, init_p, init_t = self.newton_raphson_initialization()
-
-        max_iter = 100
-        n_iter = 0
-        # n_non_ref_nodes = n_nodes - len(ref_nodes)
-
-        f = np.array(init_f)
-        p = np.array(init_p)
-        t = np.array(init_t)
-        logging.info(f'Initial pressure: {p}')
-        logging.info(f'Initial flow: {f}')
-
-        for i in range(len(init_f)):
             # TODO change to number of non-reference nodes
             self.nodes[i + 1].pressure = pressure[i]
             self.nodes[i + 1].volumetric_flow = flow[i]
             self.nodes[i + 1].convert_volumetric_to_energy_flow()
             self.nodes[i + 1].update_gas_mixture()
+
+    # def simulation(self, composition_tracking=False):
+    #     logging.debug([x.flow for x in self.nodes.values()])
+    #     # ref_nodes = self.p_ref_nodes_index
+    #
+    #     n_nodes = len(self.nodes.keys())
+    #     n_non_junction_nodes = len(self.non_junction_nodes)
+    #     connection_matrix = self.connection_matrix
+    #
+    #     init_f, init_p, init_t = self.newton_raphson_initialization()
+    #
+    #     max_iter = 100
+    #     n_iter = 0
+    #     # n_non_ref_nodes = n_nodes - len(ref_nodes)
+    #
+    #     f = np.array(init_f)
+    #     p = np.array(init_p)
+    #     t = np.array(init_t)
+    #     logging.info(f'Initial pressure: {p}')
+    #     logging.info(f'Initial flow: {f}')
+    #
+    #     for i in range(len(init_f)):
+    #         # TODO change to number of non-reference nodes
+    #         self.nodes[i + 1].pressure = pressure[i]
+    #         self.nodes[i + 1].volumetric_flow = flow[i]
+    #         self.nodes[i + 1].convert_volumetric_to_energy_flow()
+    #         self.nodes[i + 1].update_gas_mixture()
 
     def update_pipeline_parameters(self):
         for index, pipe in self.pipelines.items():
@@ -549,7 +555,8 @@ class Network:
 
         return x
 
-    def simulation(self, max_iter=100, tol=0.001, underrelaxation_factor=2., use_cuda=False, sparse_matrix=False):
+    def simulation(self, max_iter=100, tol=0.001, underrelaxation_factor=2.,
+                   use_cuda=False, sparse_matrix=False, composition_tracking=False):
         logging.debug([x.volumetric_flow for x in self.nodes.values()])
 
         n_nodes = len(self.nodes.keys())
