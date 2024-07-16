@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 5/27/24, 11:23 PM
+#     Last change on 7/16/24, 9:40 AM
 #     Last change by yifei
 #    *****************************************************************************
 import logging
@@ -61,15 +61,14 @@ class Pipeline:
         self.conversion_factor = conversion_factor
 
         # gas composition tracking
-        self.composition_history = [self.gas_mixture.composition]
-        self.batch_location_history = [0.]
+        self.composition_history = np.array([self.gas_mixture.composition])
+        self.batch_location_history = np.array([0.])
 
     def update_gas_mixture(self):
         if self.flow_rate is None or self.flow_rate >= 0:
             self.gas_mixture = self.inlet.gas_mixture
         else:
             self.gas_mixture = self.outlet.gas_mixture
-
 
     def calc_average_temperature(self):
         """

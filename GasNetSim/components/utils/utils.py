@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/15/24, 5:08 PM
+#     Last change on 7/16/24, 9:39 AM
 #     Last change by yifei
 #    *****************************************************************************
 import math
@@ -77,34 +77,36 @@ def print_n_largest_absolute_values(n, values):
     return None
 
 
-def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_matrix, use_cuda=False):
-    if use_cuda:
-        nodal_total_inflow = cp.sum(cp.where(flow_matrix > 0, flow_matrix, 0), axis=1)
-    else:
-        nodal_total_inflow = np.sum(np.where(flow_matrix > 0, flow_matrix, 0), axis=1)
-
-
 def gas_composition_batch_tracking(connection, time_step):
     """
     Function to track gas composition and corresponding batch head locations inside a pipeline
     :param connection:
-    :param time_step:
+    :param time_step: Time series resolution [s]
     :return:
     """
     composition_history = connection.composition_history
     batch_location_history = connection.batch_location_history
     length = connection.length
     velocity = connection.flow_velocity
+    outflow_composition = connection.outflow_composition
 
+    # Record inflow gas mixture composition
     if velocity is None:
         velocity = 0
     if velocity >= 0:
-        outlet_composition = connection.outlet.gas_mixture.composition
+        inflow_composition = connection.inlet.gas_mixture.composition
     else:
-        outlet_composition = connection.inlet.gas_mixture.composition
+        inflow_composition = connection.outlet.gas_mixture.composition
 
-    while batch_location_history[0] >= length:  # if the head of a batch reached the end of the pipeline
-        outlet_composition = composition_history[0]
+    # Batch-tracking
+    batch_location_history += time_step * velocity  # Update batch head compositions and locations
+
+    batch_location_history = np.append(batch_location_history, 0)
+    composition_history = np.append(composition_history, inflow_composition)
+
+    # Update outflow composition
+    while abs(batch_location_history[0]) >= length:  # if the head of a batch reached the end of the pipeline
+        outflow_composition = composition_history[0]
         composition_history, batch_location_history = composition_history[1:], batch_location_history[1:]
 
     batch_location_history = np.append(batch_location_history, 0)
@@ -115,7 +117,8 @@ def gas_composition_batch_tracking(connection, time_step):
     # update connection composition and batch location history
     connection.composition_history = composition_history
     connection.batch_location_history = batch_location_history
-    return outlet_composition, connection
+    connection.outflow_composition = outflow_composition
+    return connection
 
 
 def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_matrix,
@@ -124,6 +127,11 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_
 
     nodal_gas_inflow_composition = dict()
     nodal_gas_inflow_temperature = dict()
+
+    if use_cuda:
+        nodal_total_inflow = cp.sum(cp.where(flow_matrix > 0, flow_matrix, 0), axis=1)
+    else:
+        nodal_total_inflow = np.sum(np.where(flow_matrix > 0, flow_matrix, 0), axis=1)
 
     for i_node, node in nodes.items():  # iterate over all nodes
         if use_cuda:
@@ -150,7 +158,7 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_
             connection = connections[mapping_connections[i_node - 1][inlet_index - 1]]
 
             if composition_tracking:
-                gas_composition, connection = gas_composition_batch_tracking(connection, time_step=time_step)
+                connection = gas_composition_batch_tracking(connection, time_step=time_step)
             else:
                 gas_composition = nodes[inlet_index].gas_mixture.composition
 
@@ -240,6 +248,7 @@ def plot_network_demand_distribution(network):
 
 def check_square_matrix(a):
     return a.shape[0] == a.shape[1]
+
 
 def check_symmetric(a, rtol=1e-05, atol=1e-08):
     return np.allclose(a, a.T, rtol=rtol, atol=atol)
