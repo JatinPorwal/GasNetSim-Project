@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/16/24, 9:39 AM
+#     Last change on 7/17/24, 1:21 PM
 #     Last change by yifei
 #    *****************************************************************************
 import math
@@ -77,11 +77,12 @@ def print_n_largest_absolute_values(n, values):
     return None
 
 
-def gas_composition_batch_tracking(connection, time_step):
+def gas_composition_tracking(connection, time_step, method="simple_mixing"):
     """
     Function to track gas composition and corresponding batch head locations inside a pipeline
     :param connection:
     :param time_step: Time series resolution [s]
+    :param method: Method to track gas composition
     :return:
     """
     composition_history = connection.composition_history
@@ -98,25 +99,32 @@ def gas_composition_batch_tracking(connection, time_step):
     else:
         inflow_composition = connection.outlet.gas_mixture.composition
 
-    # Batch-tracking
-    batch_location_history += time_step * velocity  # Update batch head compositions and locations
+    if method == "batch_tracking":
 
-    batch_location_history = np.append(batch_location_history, 0)
-    composition_history = np.append(composition_history, inflow_composition)
+        # Batch-tracking
+        batch_location_history += time_step * velocity  # Update batch head compositions and locations
 
-    # Update outflow composition
-    while abs(batch_location_history[0]) >= length:  # if the head of a batch reached the end of the pipeline
-        outflow_composition = composition_history[0]
-        composition_history, batch_location_history = composition_history[1:], batch_location_history[1:]
+        batch_location_history = np.append(batch_location_history, 0)
+        composition_history = np.append(composition_history, inflow_composition)
 
-    batch_location_history = np.append(batch_location_history, 0)
-    composition_history = np.append(composition_history, connection.inlet.gas_mixture.composition)
+        # Update outflow composition
+        while abs(batch_location_history[0]) >= length:  # if the head of a batch reached the end of the pipeline
+            outflow_composition = composition_history[0]
+            composition_history, batch_location_history = composition_history[1:], batch_location_history[1:]
 
-    batch_location_history += time_step * velocity  # Update batch head locations
+        batch_location_history = np.append(batch_location_history, 0)
+        composition_history = np.append(composition_history, connection.inlet.gas_mixture.composition)
 
-    # update connection composition and batch location history
-    connection.composition_history = composition_history
-    connection.batch_location_history = batch_location_history
+        batch_location_history += time_step * velocity  # Update batch head locations
+
+        # update connection composition and batch location history
+        connection.composition_history = composition_history
+        connection.batch_location_history = batch_location_history
+    elif method == "simple_mixing":
+        outflow_composition = inflow_composition
+    else:
+        print(f"Method {method} not implemented yet!")
+
     connection.outflow_composition = outflow_composition
     return connection
 
@@ -157,10 +165,7 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_
             connections[mapping_connections[i_node - 1][inlet_index - 1]].gas_mixture.composition = gas_composition
             connection = connections[mapping_connections[i_node - 1][inlet_index - 1]]
 
-            if composition_tracking:
-                connection = gas_composition_batch_tracking(connection, time_step=time_step)
-            else:
-                gas_composition = nodes[inlet_index].gas_mixture.composition
+            connection = gas_composition_tracking(connection, time_step=time_step, method=tracking_method)
 
             connection.gas_mixture.composition = gas_composition
             inflow_rate = flow_matrix[i_node-1][inlet_index-1]
