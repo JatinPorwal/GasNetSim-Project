@@ -3,14 +3,15 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 3/28/24, 9:10 AM
+#     Last change on 7/25/24, 11:18 AM
 #     Last change by yifei
 #    *****************************************************************************
 import math
-from numba import njit, float64, types, int32
+from numba import njit, float64, types, int32, boolean
 from numba.extending import overload
 
 from .gerg2008_constants import *
+from .gerg2008 import number_of_atoms
 
 
 @njit(float64(float64), fastmath=True)
@@ -144,37 +145,33 @@ def ReducingParametersGERG_numba_sub(x):
     return Tr, Dr
 
 
-def CovertCompositionGERG_numba(composition):
-    pass
+# def ConvertCompositionGERG_numba(composition):
+#     pass
+#
+#
+# # @staticmethod
+# @overload(ConvertCompositionGERG_numba)
+# def ConvertCompositionGERG_numba(composition):
+#     """
+#         Converts a dictionary representing gas compositions into a GERG composition list.
+#         https://numba.readthedocs.io/en/stable/reference/pysupported.html#typed-dict
+#
+#         Inputs:
+#             composition (dict): A dictionary containing gas species and their compositions.
+#
+#         return:
+#             gerg_composition (list): A list representing the GERG composition of gases.
+#     """
+#     gerg_composition = np.zeros(21)
+#     global gerg_gas_spices
+#
+#     for gas_spice, composition in composition.items():
+#         gerg_composition[np.where(gerg_gas_spices == gas_spice)] = composition
+#
+#     return np.array(gerg_composition)
 
 
-# @staticmethod
-@overload(CovertCompositionGERG_numba)
-def CovertCompositionGERG_numba(composition):
-    """
-        Converts a dictionary representing gas compositions into a GERG composition list.
-        https://numba.readthedocs.io/en/stable/reference/pysupported.html#typed-dict
-
-        Inputs:
-            composition (dict): A dictionary containing gas species and their compositions.
-
-        return:
-            gerg_composition (list): A list representing the GERG composition of gases.
-    """
-    gerg_composition = np.zeros(21)
-    global gerg_gas_spices
-
-    for gas_spice, composition in composition.items():
-        gerg_composition[np.where(gerg_gas_spices == gas_spice)] = composition
-
-    return np.array(gerg_composition)
-
-
-def CalculateHeatingValue_numba(MolarMass, MolarDensity, comp, hhv, parameter):
-    pass
-
-
-@overload(CalculateHeatingValue_numba)
+@njit(float64(float64, float64, float64[:], boolean, types.unicode_type))
 def CalculateHeatingValue_numba(MolarMass, MolarDensity, comp, hhv, parameter):
     """
         Calculate the heating value of a gas mixture based on its composition and other properties.
@@ -182,111 +179,82 @@ def CalculateHeatingValue_numba(MolarMass, MolarDensity, comp, hhv, parameter):
         Inputs:
             MolarMass (float64): The molar mass of the gas mixture.
             MolarDensity (float64): The molar density of the gas mixture.
-            comp (dict): A dictionary representing the composition of the gas mixture.
+            comp (np.array): A dictionary representing the composition of the gas mixture.
             hhv (bool): True for Higher Heating Value (HHV) calculation, False for Lower Heating Value (LHV) calculation.
             parameter (str): Specifies the parameter for heating value calculation. Options: 'mass' or 'volume'.
 
         return:
             heating_value (float64): The calculated heating value based on the provided parameters.
     """
-    dict_components = {'methane': {'C': 1, 'H': 4},
-                       'nitrogen': {'N': 2},
-                       'carbon dioxide': {'C': 1, 'O': 2},
-                       'ethane': {'C': 2, 'H': 6},
-                       'propane': {'C': 3, 'H': 8},
-                       'isobutane': {'C': 4, 'H': 10},
-                       'n-butane': {'C': 4, 'H': 10},
-                       'isopentane': {'C': 5, 'H': 12},
-                       'n-pentane': {'C': 5, 'H': 12},
-                       'n-hexane': {'C': 6, 'H': 14},
-                       'n-heptane': {'C': 7, 'H': 16},
-                       'n-octane': {'C': 8, 'H': 18},
-                       'n-nonane': {'C': 9, 'H': 20},
-                       'n-decane': {'C': 10, 'H': 22},
-                       'hydrogen': {'H': 2},
-                       'oxygen': {'O': 2},
-                       'carbon monoxide': {'C': 1, 'O': 1},
-                       'water': {'H': 2, 'O': 1},
-                       'hydrogen sulfide': {'H': 2, 'S': 1},
-                       'helium': {'He': 1},
-                       'argon': {'Ar': 1}}
-                       # 'SO2': {'S': 1, 'O': 2}}
+    # 298 K
+    # dict_enthalpy_mole = {'methane': -74602.416533355,
+    #                       'nitrogen': 0.0,
+    #                       'carbon dioxide': -393517.79827154,
+    #                       'ethane': -83856.2627150042,
+    #                       'propane': -103861.117481869,
+    #                       'isobutane': -135360.0,
+    #                       'n-butane': -125849.99999999999,
+    #                       'isopentane': -178400.0,
+    #                       'n-pentane': -173500.0,
+    #                       'n-hexane': -198490.0,
+    #                       'n-heptane': -223910.0,
+    #                       'n-hctane': -249730.0,
+    #                       'n-nonane': -274700.0,
+    #                       'n-decane': -300900.0,
+    #                       'hydrogen': 0.0,
+    #                       'oxygen': -4.40676212751828,
+    #                       'carbon monoxide': -110525.0,
+    #                       'water': -241833.418361837,
+    #                       'hydrogen sulfide': -20600.0,
+    #                       'helium': 0.0,
+    #                       'argon': 0.0,
+    #                       'carbon': 0.0}
+    #                       # 'H': 218000.0,
+    #                       # 'O': 249190.0,
+    #                       # 'SO2': -296840.0}
 
     # 273 K
-    dict_enthalpy_mole = {'methane': -75483.51423273719,
-                          'nitrogen': 0.0,
-                          'carbon dioxide': -394431.82606764464,
-                          'ethane': -83856.2627150042,
-                          'propane': -103861.117481869,
-                          'isobutane': -135360.0,
-                          'n-butane': -125849.99999999999,
-                          'isopentane': -178400.0,
-                          'n-pentane': -173500.0,
-                          'n-hexane': -198490.0,
-                          'n-heptane': -223910.0,
-                          'n-octane': -249730.0,
-                          'n-nonane': -274700.0,
-                          'n-decane': -300900.0,
-                          'hydrogen': 0.0,
-                          'oxygen': -4.40676212751828,
-                          'carbon monoxide': -111262.34509634285,
-                          'water': -242671.7203547155,
-                          'hydrogen sulfide': -20600.0,
-                          'helium': 0.0,
-                          'argon': 0.0,
-                          'carbon': 0.0}
-                          # 'H': 218000.0,
-                          # 'O': 249190.0,
-                          # 'SO2': -296840.0}
+    enthalpy_mole = np.array([-75483.51423273719,  # methane
+                              0.0,  # nitrogen
+                              -394431.82606764464,  # carbon dioxide
+                              -83856.2627150042,  # ethane
+                              -103861.117481869,  # propane
+                              -135360.0,  # isobutane
+                              -125849.99999999999,  # n-butane
+                              -178400.0,  # isopentane
+                              -173500.0,  # n-pentane
+                              -198490.0,  # n-hexane
+                              -223910.0,  # n-heptane
+                              -249730.0,  # n-octane
+                              -274700.0,  # n-nonane
+                              -300900.0,  # n-decane
+                              0.0,  # hydrogen
+                              -4.40676212751828,  # oxygen
+                              -111262.34509634285,  # carbon monoxide
+                              -242671.7203547155,  # water
+                              -20600.0,  # hydrogen sulfide
+                              0.0,  # helium
+                              0.0,  # argon
+                              -296840.0])  # sulfur dioxide
 
-    # reactants
-    atom_list = []
-
-    for key, value in comp.items():
-        for key1, value1 in dict_components.items():
-            if key == key1:
-                # njit does not support yield operations
-                # atom_list.append(dict((x, y * value) for x, y in dict_components.get(key1, {}).items()))
-                atoms = {}
-                for x, y in dict_components.get(key1, {}).items():
-                    atoms[x] = y * value
-                atom_list.append(atoms)
-    # njit does not support the Counter()
-    # reactants_atom = Counter()
-    # for d in atom_list:
-    #     reactants_atom.update(d)
-    reactants_atom = {}
-    for d in atom_list:
-        for k, v in d.items():
-            reactants_atom[k] = reactants_atom.get(k, 0) + v
+    atom_list = number_of_atoms * comp[:, np.newaxis]
+    reactants_atom = np.sum(atom_list, axis=0)
 
     # products
-    n_CO2 = reactants_atom["C"]
-    n_SO2 = reactants_atom["S"]
-    n_H2O = reactants_atom["H"] / 2
-    products_dict = {'carbon dioxide': n_CO2, 'sulfur dioxide': n_SO2, 'water': n_H2O}
+    n_CO2 = reactants_atom[1]
+    n_SO2 = reactants_atom[6]
+    n_H2O = reactants_atom[2] / 2
+    products_dict = np.array([n_CO2, n_SO2, n_H2O])
 
     # oxygen for complete combustion
     n_O = n_CO2 * 2 + n_SO2 * 2 + n_H2O * 1  # 2 is number of O atoms in CO2 AND SO2 and 1 is number of O atoms in H2O
     n_O2 = n_O / 2
-    # https://numba.discourse.group/t/deep-copy-of-typed-lists/952
-    # reactants_dict = deepcopy(comp)
+    reactants_dict = np.copy(comp)
+    reactants_dict[15] = n_O2
     # reactants_dict.update({'oxygen': n_O2})
-    # Manual copy of comp dictionary
-    reactants_dict = {}
-    for k, v in comp.items():
-        reactants_dict[k] = v
-    reactants_dict['oxygen'] = n_O2
 
     # LHV calculation
-    LHV = 0
-    for key, value in dict_enthalpy_mole.items():
-        for key1, value1 in reactants_dict.items():
-            if key == key1:
-                LHV += value * value1
-        for key2, value2 in products_dict.items():
-            if key == key2:
-                LHV -= value * value2
+    LHV = (reactants_dict * enthalpy_mole[:-1]).sum() - (products_dict * np.take(enthalpy_mole, [2, 17, 21])).sum()
 
     # 298 K
     hw_liq = -285825.0
@@ -296,7 +264,7 @@ def CalculateHeatingValue_numba(MolarMass, MolarDensity, comp, hhv, parameter):
     # hw_liq = -287654.96084928664
     # hw_gas = -242628.01574091613
 
-    HHV = LHV + (hw_gas - hw_liq) * products_dict["water"]
+    HHV = LHV + (hw_gas - hw_liq) * products_dict[2]
 
     if parameter == 'mass':
         # returns heating value in J/kg

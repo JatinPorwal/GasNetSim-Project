@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/26/24, 7:38 PM
+#     Last change on 7/25/24, 10:52 AM
 #     Last change by yifei
 #    *****************************************************************************
 from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
@@ -22,8 +22,10 @@ def test_gerg_function_with_original_cpp_implementation():
     for i in range(21):
         nist_gas_mixture[a[i]] = b[i]
 
+    gerg_gas_composition = convert_to_gerg2008_composition(nist_gas_mixture)
+
     for use_numba in (True, False):
-        gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=use_numba)
+        gas_mixture = GasMixtureGERG2008(500 * bar, 400, gerg_gas_composition, use_numba=use_numba)
 
         nist_results = {"Molar mass [g/mol]": 20.5427445016,
                         "Molar density [mol/l]": 12.79828626082062,

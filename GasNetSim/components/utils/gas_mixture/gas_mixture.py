@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/11/24, 3:28 PM
+#     Last change on 7/25/24, 2:11 PM
 #     Last change by yifei
 #    *****************************************************************************
 from collections import OrderedDict
@@ -14,6 +14,7 @@ from scipy.constants import atm, zero_Celsius
 # from thermo import Mixture
 from .GERG2008.gerg2008 import *
 from .GERG2008.gerg2008_constants import *
+from .GERG2008.gerg2008 import convert_to_gerg2008_composition
 # from .heating_value import calc_heating_value
 
 
@@ -34,7 +35,10 @@ class GasMixture:
         self.composition = composition
         self.method = method
         if method == "GERG-2008":
-            self.gerg2008_mixture = GasMixtureGERG2008(P_Pa=pressure, T_K=temperature, composition=composition)
+            gerg2008_composition = convert_to_gerg2008_composition(composition)
+            self.gerg2008_mixture = GasMixtureGERG2008(P_Pa=pressure,
+                                                       T_K=temperature,
+                                                       composition=gerg2008_composition)
         elif method == "PREOS":
             self.thermo_mixture = Mixture(P=pressure, T=temperature, zs=composition)
 
@@ -114,10 +118,23 @@ class GasMixture:
         elif self.method == "GERG-2008":
             return self.gerg2008_mixture.R_specific
 
-    def heating_value(self, hhv=True, parameter="volume"):
+    @property
+    def HHV_J_per_m3(self):
         if self.method == "PREOS":
-            return calc_heating_value(self, heating_value_type=type)
+            return None
         elif self.method == "GERG-2008":
-            return self.gerg2008_mixture.CalculateHeatingValue(comp=self.composition,
-                                                               parameter=parameter,
-                                                               hhv=hhv)
+            return self.gerg2008_mixture.HHV_J_per_m3
+
+    @property
+    def HHV_J_per_sm3(self):
+        if self.method == "PREOS":
+            return None
+        elif self.method == "GERG-2008":
+            return self.gerg2008_mixture.HHV_J_per_sm3
+
+    @property
+    def HHV_J_per_kg(self):
+        if self.method == "PREOS":
+            return None
+        elif self.method == "GERG-2008":
+            return self.gerg2008_mixture.HHV_J_per_kg
