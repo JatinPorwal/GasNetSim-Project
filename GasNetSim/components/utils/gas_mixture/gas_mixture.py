@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/25/24, 2:11 PM
+#     Last change on 8/7/24, 2:20 PM
 #     Last change by yifei
 #    *****************************************************************************
 from collections import OrderedDict
@@ -22,7 +22,7 @@ class GasMixture:
     """
     Class for gas mixture properties
     """
-    def __init__(self, pressure, temperature, composition, method='GERG-2008'):
+    def __init__(self, pressure, temperature, composition: OrderedDict, method='GERG-2008'):
         """
 
         :param pressure:
@@ -34,13 +34,31 @@ class GasMixture:
         self.temperature = temperature
         self.composition = composition
         self.method = method
-        if method == "GERG-2008":
-            gerg2008_composition = convert_to_gerg2008_composition(composition)
-            self.gerg2008_mixture = GasMixtureGERG2008(P_Pa=pressure,
-                                                       T_K=temperature,
-                                                       composition=gerg2008_composition)
-        elif method == "PREOS":
-            self.thermo_mixture = Mixture(P=pressure, T=temperature, zs=composition)
+        self.convert_composition_format()
+        self.update_gas_mixture()
+
+    def convert_composition_format(self):
+        if self.method == "GERG-2008":
+            self.eos_composition = convert_to_gerg2008_composition(self.composition)
+            self.eos_composition_tmp = convert_to_gerg2008_composition(self.composition)
+        elif self.method == "PREOS":
+            self.eos_composition = self.composition
+            self.eos_composition_tmp = self.composition
+
+    def convert_eos_composition_to_dictionary(self):
+        if self.method == "GERG-2008":
+            self.composition = convert_gerg2008_to_dictionary(self.eos_composition)
+        return None
+
+    def update_gas_mixture(self):
+        if self.method == "GERG-2008":
+            self.gerg2008_mixture = GasMixtureGERG2008(P_Pa=self.pressure,
+                                                       T_K=self.temperature,
+                                                       composition=self.eos_composition_tmp)
+        elif self.method == "PREOS":
+            self.thermo_mixture = Mixture(P=self.pressure,
+                                          T=self.temperature,
+                                          zs=self.eos_composition_tmp)
 
     @property
     def compressibility(self):

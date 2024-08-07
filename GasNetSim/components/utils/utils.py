@@ -3,9 +3,10 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/17/24, 1:21 PM
+#     Last change on 8/7/24, 9:23 AM
 #     Last change by yifei
 #    *****************************************************************************
+import copy
 import math
 from pyparsing import col
 from collections import OrderedDict
@@ -95,15 +96,13 @@ def gas_composition_tracking(connection, time_step, method="simple_mixing"):
     if velocity is None:
         velocity = 0
     if velocity >= 0:
-        inflow_composition = connection.inlet.gas_mixture.composition
+        inflow_composition = connection.inlet.gas_mixture.eos_composition_tmp
     else:
-        inflow_composition = connection.outlet.gas_mixture.composition
+        inflow_composition = connection.outlet.gas_mixture.eos_composition_tmp
 
     if method == "batch_tracking":
-
         # Batch-tracking
         batch_location_history += time_step * velocity  # Update batch head compositions and locations
-
         batch_location_history = np.append(batch_location_history, 0)
         composition_history = np.append(composition_history, inflow_composition)
 
@@ -112,88 +111,92 @@ def gas_composition_tracking(connection, time_step, method="simple_mixing"):
             outflow_composition = composition_history[0]
             composition_history, batch_location_history = composition_history[1:], batch_location_history[1:]
 
-        batch_location_history = np.append(batch_location_history, 0)
-        composition_history = np.append(composition_history, connection.inlet.gas_mixture.composition)
-
-        batch_location_history += time_step * velocity  # Update batch head locations
-
         # update connection composition and batch location history
         connection.composition_history = composition_history
         connection.batch_location_history = batch_location_history
     elif method == "simple_mixing":
-        outflow_composition = inflow_composition
+        outflow_composition = copy.deepcopy(inflow_composition)
     else:
         print(f"Method {method} not implemented yet!")
 
-    connection.outflow_composition = outflow_composition
+    connection.outflow_composition = outflow_composition  # Update outflow composition
     return connection
 
 
+def create_incidence_matrix(nodes, connections):
+    branch_flow_matrix = create_branch_flow_matrix(nodes, connections)
+    incidence_matrix = math.copysign(1, branch_flow_matrix)
+
+    return incidence_matrix
+
+
+def create_branch_flow_matrix(nodes, connections, use_cuda=False):
+    n_nodes = len(nodes)
+    n_edges = len(connections)
+
+    _branch_flow_matrix = np.zeros((n_edges, n_nodes))
+    for _i, _connection in connections.items():
+        _branch_flow_matrix[_i][_connection.inlet_index-1] = - _connection.flow_rate
+        _branch_flow_matrix[_i][_connection.outlet_index-1] = _connection.flow_rate
+    return _branch_flow_matrix
+
+
+def create_nodal_composition_matrix(nodes, connections, use_cuda=False):
+    _branch_flow_matrix = create_branch_flow_matrix(nodes, connections)
+
+    _nodal_inflow_matrix = np.where(_branch_flow_matrix > 0, _branch_flow_matrix, 0)
+
+    _branch_outflow_composition = np.array([c.outflow_composition for c in connections.values()])
+    _nodal_inflow_composition = np.dot(_nodal_inflow_matrix.T, _branch_outflow_composition)
+
+    _nodal_inflow_vector = np.sum(np.where(_branch_flow_matrix > 0, _branch_flow_matrix, 0), axis=0)
+
+    _nodal_composition_matrix = _nodal_inflow_composition.T / _nodal_inflow_vector
+
+    return _nodal_composition_matrix
+
+
+def allclose_with_nan(a, b, rtol=1e-05, atol=1e-08):
+    # Check if arrays are close, considering NaNs
+    nan_equal = np.isnan(a) & np.isnan(b)
+    close_equal = np.isclose(a, b, rtol=rtol, atol=atol, equal_nan=False)
+    return np.all(nan_equal | close_equal)
+
+
 def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_matrix,
-                                  use_cuda=False, composition_tracking=False, time_step=0):
-    nodal_total_inflow = np.sum(np.where(flow_matrix > 0, flow_matrix, 0), axis=1)
+                                  tracking_method="simple_mixing",
+                                  use_cuda=False,
+                                  time_step=0):
+    to_update = True
+    _prev_nodal_composition_matrix = np.zeros((21, (len(nodes))))
 
-    nodal_gas_inflow_composition = dict()
-    nodal_gas_inflow_temperature = dict()
-
-    if use_cuda:
-        nodal_total_inflow = cp.sum(cp.where(flow_matrix > 0, flow_matrix, 0), axis=1)
-    else:
-        nodal_total_inflow = np.sum(np.where(flow_matrix > 0, flow_matrix, 0), axis=1)
-
-    for i_node, node in nodes.items():  # iterate over all nodes
-        if use_cuda:
-            inflow_from_node = cp.where(flow_matrix[i_node - 1] > 0)[0]  # find the supplying nodes
-        else:
-            inflow_from_node = np.where(flow_matrix[i_node-1] > 0)[0]  # find the supplying nodes
-
-        # TODO: check inflow nodes
-
-        if len(inflow_from_node) == 0:
-            pass
-        else:
-            inflow_from_node += 1
-
-        total_inflow_comp = dict()
-        total_inflow = nodal_total_inflow[i_node-1]
-        total_inflow_temperature_times_flow_rate = 0
-
-        for inlet_index in inflow_from_node:
-            if type(inlet_index) is not int:
-                inlet_index = inlet_index.item()
-            gas_composition = nodes[inlet_index].gas_mixture.composition
-            connections[mapping_connections[i_node - 1][inlet_index - 1]].gas_mixture.composition = gas_composition
-            connection = connections[mapping_connections[i_node - 1][inlet_index - 1]]
-
+    while to_update:
+        for connection in connections.values():
             connection = gas_composition_tracking(connection, time_step=time_step, method=tracking_method)
 
-            connection.gas_mixture.composition = gas_composition
-            inflow_rate = flow_matrix[i_node-1][inlet_index-1]
-            inflow_temperature = connections[mapping_connections[i_node-1][inlet_index-1]].calc_pipe_outlet_temp()
-
-            # Sum up flow rate * temperature
-            total_inflow_temperature_times_flow_rate += inflow_rate * inflow_temperature
-
-            # create a OrderedDict to store gas flow fractions
-            gas_flow_comp = OrderedDict({gas: comp * inflow_rate for gas, comp in gas_composition.items()})
-            for gas, comp in gas_flow_comp.items():
-                if total_inflow_comp.get(gas) is None:
-                    total_inflow_comp[gas] = comp
-                else:
-                    total_inflow_comp[gas] += comp
-
-        try:
-            nodal_gas_inflow_composition[i_node] = {k: v / total_inflow for k, v in total_inflow_comp.items()}
-        except RuntimeWarning:
-            print(total_inflow_comp)
-            print(total_inflow)
-
-        if total_inflow != .0:
-            nodal_gas_inflow_temperature[i_node] = total_inflow_temperature_times_flow_rate / total_inflow
+        _nodal_composition_matrix = create_nodal_composition_matrix(nodes, connections)
+        nodes = update_temporaray_nodal_gas_mixture_properties(nodes, _nodal_composition_matrix)
+        if allclose_with_nan(_nodal_composition_matrix, _prev_nodal_composition_matrix):
+            to_update = False
         else:
-            nodal_gas_inflow_temperature[i_node] = np.nan
+            _prev_nodal_composition_matrix = _nodal_composition_matrix
 
-    return nodal_gas_inflow_composition, nodal_gas_inflow_temperature
+    return _nodal_composition_matrix
+
+def update_temporaray_nodal_gas_mixture_properties(nodes, nodal_composition_matrix):
+    """
+
+    :param nodes:
+    :param nodal_composition_matrix:
+    :return:
+    """
+    for _i in range(nodal_composition_matrix.shape[1]):  # iterate over nodes
+        if np.any(np.isnan(nodal_composition_matrix[:, _i])):  # No inflow
+            pass
+        else:
+            nodes[_i+1].gas_mixture.eos_composition_tmp = nodal_composition_matrix[:, _i]
+            nodes[_i+1].gas_mixture.update_gas_mixture()
+    return nodes
 
 
 def calculate_flow_matrix(network, pressure_bar):

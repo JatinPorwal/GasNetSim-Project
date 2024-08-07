@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/25/24, 2:13 PM
+#     Last change on 8/6/24, 10:20 AM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -146,6 +146,19 @@ def convert_to_gerg2008_composition(composition: OrderedDict) -> np.array:
         gerg_composition[np.where(gerg_gas_spices == gas_spice)] = composition
 
     return np.array(gerg_composition)
+
+
+def convert_gerg2008_to_dictionary(gerg2008_composition: np.array) -> OrderedDict:
+    assert gerg2008_composition.shape == (21,), "Check the GERG-2008 composition array"
+    global gerg_gas_spices
+
+    gas_mixutre_composition = OrderedDict()
+
+    for _i in range(21):
+        if gerg2008_composition[_i] > 0:
+            gas_mixutre_composition[gerg_gas_spices[_i]] = gerg2008_composition[_i]
+
+    return gas_mixutre_composition
 
 
 def gerg2008_gas_compounds_atomic_composition() -> np.array(21):

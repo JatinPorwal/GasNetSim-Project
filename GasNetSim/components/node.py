@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/26/24, 2:07 PM
+#     Last change on 7/28/24, 9:47 PM
 #     Last change by yifei
 #    *****************************************************************************
 from .utils.gas_mixture import *
@@ -27,10 +27,10 @@ class Node:
         :param altitude: Elevation of the network node [m]
         """
         self.index = node_index
-        if gas_composition is not None:
-            self.gas_composition = gas_composition
-        else:
-            self.gas_composition = NATURAL_GAS_gri30
+        # if gas_composition is not None:
+        #     self.gas_composition = gas_composition
+        # else:
+        #     self.gas_composition = NATURAL_GAS_gri30
         self.pressure = pressure_pa
         if pressure_pa is not None:
             self.pressure_bar = pressure_pa / bar
@@ -53,12 +53,12 @@ class Node:
         #     self.flow_type = 'volumetric'
 
         try:
-            self.gas_mixture = GasMixture(composition=self.gas_composition,
+            self.gas_mixture = GasMixture(composition=gas_composition,
                                           temperature=self.temperature,
                                           pressure=self.pressure)
         except (TypeError, AttributeError):
             # If pressure or temperature is missing for some nodes
-            self.gas_mixture = GasMixture(composition=self.gas_composition,
+            self.gas_mixture = GasMixture(composition=NATURAL_GAS_gri30,
                                           temperature=288.15,
                                           pressure=50 * bar)
 
@@ -79,15 +79,15 @@ class Node:
             if pressure_pa is None:
                 raise InitializationError("Either pressure or flow should be known.")
 
-    def update_gas_mixture(self):
-        try:
-            self.gas_mixture = GasMixture(composition=self.get_mole_fraction(),
-                                          temperature=self.temperature,
-                                          pressure=self.pressure)
-        except (TypeError, AttributeError):
-            self.gas_mixture = GasMixture(composition=NATURAL_GAS_gri30,
-                                          temperature=288.15,
-                                          pressure=50 * bar)
+    # def update_gas_mixture(self):
+    #     try:
+    #         self.gas_mixture = GasMixture(composition=self.get_mole_fraction(),
+    #                                       temperature=self.temperature,
+    #                                       pressure=self.pressure)
+    #     except (TypeError, AttributeError):
+    #         self.gas_mixture = GasMixture(composition=NATURAL_GAS_gri30,
+    #                                       temperature=288.15,
+    #                                       pressure=50 * bar)
 
     def get_mole_fraction(self):
         """
@@ -110,18 +110,16 @@ class Node:
         :return:
         """
         # HHV = calc_heating_value(self.gas_mixture)
-        HHV = self.gas_mixture.heating_value(hhv=True, parameter="mass")
-        gas_comp = self.get_mole_fraction()
-        self.volumetric_flow = self.energy_flow / HHV * 1e6 / self.gas_mixture.gerg2008_mixture.standard_density
+        # HHV = self.gas_mixture.heating_value(hhv=True, parameter="mass")
+        self.volumetric_flow = self.energy_flow / self.gas_mixture.HHV_J_per_sm3 * 1e6  # sm3/s
 
     def convert_volumetric_to_energy_flow(self):
         """
         Convert volumetric flow rate (sm^3/s) into energy flow rate (MW)
         :return:
         """
-        HHV = self.gas_mixture.heating_value(hhv=True, parameter="mass")
-        gas_comp = self.get_mole_fraction()
-        self.energy_flow = self.volumetric_flow * HHV / 1e6 * self.gas_mixture.gerg2008_mixture.standard_density
+        # HHV = self.gas_mixture.heating_value(hhv=True, parameter="mass")
+        self.energy_flow = self.volumetric_flow * self.gas_mixture.HHV_J_per_sm3 / 1e6  # MJ/s
 
 
 if __name__ == "__main__":

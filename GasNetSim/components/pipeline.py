@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/16/24, 9:40 AM
+#     Last change on 8/6/24, 4:21 PM
 #     Last change by yifei
 #    *****************************************************************************
 import logging
@@ -61,8 +61,9 @@ class Pipeline:
         self.conversion_factor = conversion_factor
 
         # gas composition tracking
-        self.composition_history = np.array([self.gas_mixture.composition])
-        self.batch_location_history = np.array([0.])
+        self.composition_history = np.array([])
+        self.batch_location_history = np.array([])
+        self.outflow_composition = None
 
     def update_gas_mixture(self):
         if self.flow_rate is None or self.flow_rate >= 0:
@@ -268,9 +269,9 @@ class Pipeline:
         slope_correction = self.calc_pipe_slope_correction()
         tmp = self.calculate_coefficient_for_iteration() * self.conversion_factor
 
-        # self.flow_rate = flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * tmp
+        self.flow_rate = flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * tmp
 
-        return flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * tmp
+        return self.flow_rate
 
     def flow_rate_first_order_derivative(self, is_inlet=True):
         p1 = self.inlet.pressure
@@ -290,10 +291,8 @@ class Pipeline:
         :return: Mass flow rate [kg/s]
         """
         q = self.calc_flow_rate()
-        gas_rho = GasMixture(composition=self.get_mole_fraction(),
-                             pressure=STANDARD_PRESSURE,
-                             temperature=STANDARD_TEMPERATURE).density
-        return q * gas_rho
+        gas_stardard_rho = self.gas_mixture.standard_density
+        return q * gas_stardard_rho
 
     def calc_pipe_outlet_temp(self):
         """

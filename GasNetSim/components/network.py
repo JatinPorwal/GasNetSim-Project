@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/15/24, 4:00 PM
+#     Last change on 8/7/24, 4:51 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -302,6 +302,7 @@ class Network:
                     pass
                 elif pressure_init[j] is None or pressure_init[i] == pressure_init[j]:
                     pressure_init[j] = pressure_init[i] * (1 - 0.05 * (res / max_resistance) * (flow / max_flow))
+                    # pressure_init[j] = pressure_init[i] * (1 - 0.0001)
                     # if res/max_resistance < 0.001:
                     #     pressure_init[j] = pressure_init[i] * 0.999999
                     # else:
@@ -316,6 +317,7 @@ class Network:
                 #         # pressure_init[j] = min(pressure_init[j], pressure_init[i] * 0.98)
                 elif pressure_init[i] is None and pressure_init[j] is not None:
                     pressure_init[i] = pressure_init[j] / (1 - 0.05 * (res / max_resistance) * (flow / max_flow))
+                    # pressure_init[i] = pressure_init[j] / (1 - 0.0001)
                     # if res/max_resistance < 0.001:
                     #     pressure_init[i] = pressure_init[j] / 0.99999
                     # else:
@@ -411,8 +413,10 @@ class Network:
             i = connection.inlet_index - 1
             j = connection.outlet_index - 1
 
-            flow_mat[i][j] -= connection.calc_flow_rate()
-            flow_mat[j][i] += connection.calc_flow_rate()
+            connection.calc_flow_rate()
+
+            flow_mat[i][j] -= connection.flow_rate
+            flow_mat[j][i] += connection.flow_rate
 
             if type(connection) is not ShortPipe:
                 slope_corr = connection.calc_pipe_slope_correction()
@@ -468,7 +472,7 @@ class Network:
             self.nodes[i + 1].pressure = pressure[i]
             self.nodes[i + 1].volumetric_flow = flow[i]
             self.nodes[i + 1].convert_volumetric_to_energy_flow()
-            self.nodes[i + 1].update_gas_mixture()
+            self.nodes[i + 1].gas_mixture.update_gas_mixture()
 
     # def simulation(self, composition_tracking=False):
     #     logging.debug([x.flow for x in self.nodes.values()])
@@ -512,6 +516,8 @@ class Network:
     def update_connection_flow_rate(self):
         for connection in self.connections.values():
             connection.flow_rate = connection.calc_flow_rate()
+            connection.mass_flow_rate = connection.calc_gas_mass_flow()
+            connection.flow_velocity = connection.calc_flow_velocity()
 
     def fun(self, p):
         init_f, init_p, init_t = self.newton_raphson_initialization()
@@ -556,7 +562,7 @@ class Network:
         return x
 
     def simulation(self, max_iter=100, tol=0.001, underrelaxation_factor=2.,
-                   use_cuda=False, sparse_matrix=False, composition_tracking=False):
+                   use_cuda=False, sparse_matrix=False, tracking_method="simple_mixing"):
         logging.debug([x.volumetric_flow for x in self.nodes.values()])
 
         n_nodes = len(self.nodes.keys())
@@ -590,25 +596,18 @@ class Network:
         while err > tol:
             j_mat, f_mat = self.jacobian_matrix(use_cuda=use_cuda, sparse_matrix=sparse_matrix)
             mapping_connections = self.mapping_of_connections()
-            nodal_gas_inflow_composition, nodal_gas_inflow_temperature = \
-                calculate_nodal_inflow_states(self.nodes, self.connections, mapping_connections, f_mat,
-                                              composition_tracking=composition_tracking)
+            for node in self.nodes.values():
+                node.gas_mixture.eos_composition_tmp = node.gas_mixture.eos_composition
 
-            inflow_xi, inflow_temp = calculate_nodal_inflow_states(self.nodes, self.connections,
-                                                                   mapping_connections, f_mat)
-            nodal_gas_inflow_composition = inflow_xi
-            nodal_gas_inflow_temperature = inflow_temp
-            for i_node, node in self.nodes.items():
-                if nodal_gas_inflow_composition[i_node] == {}:
-                    pass
-                else:
-                    try:
-                        self.nodes[i_node].gas_mixture = GasMixture(composition=nodal_gas_inflow_composition[i_node],
-                                                                    temperature=self.nodes[i_node].temperature,
-                                                                    pressure=self.nodes[i_node].pressure)
-                    except Exception:
-                        logging.warning(i_node)
-                        logging.warning(nodal_gas_inflow_composition[i_node])
+            nodal_gas_inflow_composition = calculate_nodal_inflow_states(self.nodes, self.connections,
+                                                                         mapping_connections, f_mat,
+                                                                         tracking_method=tracking_method)
+
+            # inflow_xi, inflow_temp = calculate_nodal_inflow_states(self.nodes, self.connections,
+            #                                                        mapping_connections, f_mat)
+            # nodal_gas_inflow_composition = inflow_xi
+            # nodal_gas_inflow_temperature = inflow_temp
+            # update_temporaray_nodal_gas_mixture_properties(self.nodes, nodal_gas_inflow_composition)
 
             if use_cuda:
                 nodal_flow = cp.sum(f_mat, axis=1)
@@ -662,12 +661,12 @@ class Network:
             # plt.plot(delta_flow)
             # plt.show()
 
-            # print(f"Current iteration number: {n_iter}")
+            print(f"Current iteration number: {n_iter}")
             # print([x.flow_rate for x in self.pipelines.values()])
             # print([x.temperature for x in self.nodes.values()])
             # print(f"Volumetric flow target: {f_target}")
             # print(f"Error between calculated flow and the target flow: {delta_flow}")
-            # print(f"Pressure change after each iteration: {delta_p}")
+            print(f"Pressure change after each iteration: {max(abs(delta_p))}")
             # print(f"Nodal Pressure: {p}")
 
             # simulation does not converge
@@ -681,6 +680,10 @@ class Network:
         for i_node in self.non_junction_nodes:
             self.nodes[i_node].volumetric_flow = nodal_flow[i_node - 1]
             self.nodes[i_node].convert_volumetric_to_energy_flow()
+
+        for node in self.nodes.values():
+            node.gas_mixture.eos_composition = node.gas_mixture.eos_composition_tmp
+            node.gas_mixture.convert_eos_composition_to_dictionary()
 
         # output connection
         for i_connection, connection in self.connections.items():
