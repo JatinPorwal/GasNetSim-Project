@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/6/24, 4:21 PM
+#     Last change on 8/13/24, 9:48 AM
 #     Last change by yifei
 #    *****************************************************************************
 import logging
@@ -291,8 +291,8 @@ class Pipeline:
         :return: Mass flow rate [kg/s]
         """
         q = self.calc_flow_rate()
-        gas_stardard_rho = self.gas_mixture.standard_density
-        return q * gas_stardard_rho
+        gas_standard_rho = self.gas_mixture.standard_density
+        return q * gas_standard_rho
 
     def calc_pipe_outlet_temp(self):
         """
