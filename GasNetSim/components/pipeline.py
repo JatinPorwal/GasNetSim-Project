@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/13/24, 9:48 AM
+#     Last change on 8/13/24, 9:49 AM
 #     Last change by yifei
 #    *****************************************************************************
 import logging
@@ -335,9 +335,6 @@ class Pipeline:
         #         print(mole_fraction)
         # return mole_fraction
         return self.gas_mixture.composition
-
-    def gas_mixture_transportation(self):
-        self.batch_location_history
 
 
 class Resistance:
