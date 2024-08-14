@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/25/24, 11:18 AM
+#     Last change on 8/14/24, 2:59 PM
 #     Last change by yifei
 #    *****************************************************************************
 import math
@@ -254,7 +254,7 @@ def CalculateHeatingValue_numba(MolarMass, MolarDensity, comp, hhv, parameter):
     # reactants_dict.update({'oxygen': n_O2})
 
     # LHV calculation
-    LHV = (reactants_dict * enthalpy_mole[:-1]).sum() - (products_dict * np.take(enthalpy_mole, [2, 17, 21])).sum()
+    LHV = (reactants_dict * enthalpy_mole[:-1]).sum() - (products_dict * np.take(enthalpy_mole, [2, 21, 17])).sum()
 
     # 298 K
     hw_liq = -285825.0

@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/6/24, 10:20 AM
+#     Last change on 8/14/24, 2:56 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -331,6 +331,13 @@ class GasMixtureGERG2008:
             self.HHV_J_per_kg = CalculateHeatingValue_numba(MolarMass=self.MolarMass,
                                                             MolarDensity=self.MolarDensity,
                                                             comp=composition, hhv=True, parameter="mass")
+            self.LHV_J_per_m3 = CalculateHeatingValue_numba(MolarMass=self.MolarMass,
+                                                            MolarDensity=self.MolarDensity,
+                                                            comp=composition, hhv=False, parameter="volume")
+            self.LHV_J_per_sm3 = self.LHV_J_per_m3 / self.P / 1000 * atm / 288.15 * self.T
+            self.LHV_J_per_kg = CalculateHeatingValue_numba(MolarMass=self.MolarMass,
+                                                            MolarDensity=self.MolarDensity,
+                                                            comp=composition, hhv=False, parameter="mass")
 
         else:
             self.PropertiesGERG()
@@ -339,6 +346,9 @@ class GasMixtureGERG2008:
             self.HHV_J_per_m3 = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="volume")
             self.HHV_J_per_sm3 = self.HHV_J_per_m3 / self.P / 1000 * atm / 288.15 * self.T
             self.HHV_J_per_kg = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="mass")
+            self.LHV_J_per_m3 = self.CalculateHeatingValue(comp=composition, hhv=False, parameter="volume")
+            self.LHV_J_per_sm3 = self.LHV_J_per_m3 / self.P / 1000 * atm / 288.15 * self.T
+            self.LHV_J_per_kg = self.CalculateHeatingValue(comp=composition, hhv=False, parameter="mass")
 
     def CalculateHeatingValue(self, comp, hhv, parameter):
         # 298 K
@@ -397,20 +407,20 @@ class GasMixtureGERG2008:
 
 
         # products
-        n_CO2 = reactants_atom[1]
-        n_SO2 = reactants_atom[6]
-        n_H2O = reactants_atom[2] / 2
+        n_CO2 = reactants_atom[1]  # C
+        n_SO2 = reactants_atom[6]  # S
+        n_H2O = reactants_atom[2] / 2  # H
         products_dict = np.array([n_CO2, n_SO2, n_H2O])
 
         # oxygen for complete combustion
         n_O = n_CO2 * 2 + n_SO2 * 2 + n_H2O * 1  # 2 is number of O atoms in CO2 AND SO2 and 1 is number of O atoms in H2O
         n_O2 = n_O / 2
         reactants_dict = deepcopy(comp)
-        reactants_dict[15] = n_O2
+        reactants_dict[15] += n_O2
         # reactants_dict.update({'oxygen': n_O2})
 
         # LHV calculation
-        LHV = (reactants_dict * enthalpy_mole[:-1]).sum() - (products_dict * enthalpy_mole[[2, 17, 21]]).sum()
+        LHV = (reactants_dict * enthalpy_mole[:-1]).sum() - (products_dict * enthalpy_mole[[2, 21, 17]]).sum()
 
         # 298 K
         hw_liq = -285825.0

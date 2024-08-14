@@ -3,10 +3,10 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/24/24, 5:52 PM
+#     Last change on 8/14/24, 2:59 PM
 #     Last change by yifei
 #    *****************************************************************************
-
+from numba.cpython.mathimpl import unary_math_extern
 from numpy.testing import assert_almost_equal
 from collections import OrderedDict
 from scipy.constants import bar
@@ -67,13 +67,14 @@ if __name__ == '__main__':
     HHV_gerg2008_vol = []
     gas_comp = {'methane': 1, 'ethane': 1, 'propane': 1, 'hydrogen': 1, 'carbon monoxide': 1}
     for key, value in gas_comp.items():
-        gas_mixture = GasMixtureGERG2008(P_Pa=1 * bar, T_K=298, composition={key: value})
-        HHV = gas_mixture.CalculateHeatingValue({key: value}, hhv=True, parameter='mass')
-        LHV = gas_mixture.CalculateHeatingValue({key: value}, hhv=False, parameter='mass')
+        x = convert_to_gerg2008_composition(OrderedDict({key: value}))
+        gas_mixture = GasMixtureGERG2008(P_Pa=1 * bar, T_K=298, composition=x, use_numba=True)
+        HHV = gas_mixture.HHV_J_per_kg
+        LHV = gas_mixture.LHV_J_per_kg
         LHV_gerg2008_mass.append(LHV)
         HHV_gerg2008_mass.append(HHV)
-        HHV = gas_mixture.CalculateHeatingValue({key: value}, hhv=True, parameter='vol')
-        LHV = gas_mixture.CalculateHeatingValue({key: value}, hhv=False, parameter='vol')
+        HHV = gas_mixture.HHV_J_per_m3
+        LHV = gas_mixture.LHV_J_per_m3
         LHV_gerg2008_vol.append(LHV)
         HHV_gerg2008_vol.append(HHV)
     LHV_gerg2008_mass = [x for x in LHV_gerg2008_mass]
