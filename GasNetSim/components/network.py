@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/15/24, 4:00 PM
+#     Last change on 8/14/24, 5:16 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -656,7 +656,7 @@ class Network:
 
             logging.debug(max([abs(x) for x in (delta_flow/target_flow)]))
             logging.debug(delta_p)
-            self.update_connection_flow_rate()
+            # self.update_connection_flow_rate()
 
             # plt.figure()
             # plt.plot(delta_flow)
