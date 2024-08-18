@@ -174,15 +174,19 @@ class Pipeline:
             warnings.warn("There is no Reynolds number available, using 0.01 for friction factor!")
             return 0.01
 
-        if method == 'weymouth':
-            return 0.0093902 / (self.diameter ** (1 / 3))
-        elif method == 'chen':
-            return chen(epsilon=self.roughness, d=self.diameter, N_re=self.calculate_reynolds_number())
-        elif method == 'nikuradse':
-            return nikuradse(d=self.diameter, epsilon=self.roughness)
-        elif method == 'colebrook-white':
-            return colebrook_white(epsilon=self.roughness, d=self.diameter, N_re=self.calculate_reynolds_number())
-        elif method == "hagen-poiseuille":
+        reynolds_number = self.calculate_reynolds_number()
+        if reynolds_number >= 2100:
+            if method == 'weymouth':
+                return 0.0093902 / (self.diameter ** (1 / 3))
+            elif method == 'chen':
+                return chen(epsilon=self.roughness, d=self.diameter, N_re=self.calculate_reynolds_number())
+            elif method == 'nikuradse':
+                return nikuradse(d=self.diameter, epsilon=self.roughness)
+            elif method == 'colebrook-white':
+                return colebrook_white(epsilon=self.roughness, d=self.diameter, N_re=self.calculate_reynolds_number())
+        else:
+            # return 0.05
+            # return chen(epsilon=self.roughness, d=self.diameter, N_re=self.calculate_reynolds_number())
             return hagen_poiseuille(N_re=self.calculate_reynolds_number())
 
     def calculate_fictitious_resistance(self):

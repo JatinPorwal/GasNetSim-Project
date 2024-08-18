@@ -655,13 +655,15 @@ class Network:
 
             logging.debug(max([abs(x) for x in (delta_flow/target_flow)]))
             logging.debug(delta_p)
-            self.update_connection_flow_rate()
+            # self.update_connection_flow_rate()
 
             # plt.figure()
             # plt.plot(delta_flow)
             # plt.show()
 
             # print(f"Current iteration number: {n_iter}")
+            # print(f"{max([n.pressure for n in self.nodes.values()])}")
+            # print(f"{min([n.pressure for n in self.nodes.values()])}")
             # print([x.flow_rate for x in self.pipelines.values()])
             # print([x.temperature for x in self.nodes.values()])
             # print(f"Volumetric flow target: {f_target}")
