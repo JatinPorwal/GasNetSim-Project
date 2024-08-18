@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/14/24, 2:56 PM
+#     Last change on 8/14/24, 4:42 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -302,7 +302,7 @@ class GasMixtureGERG2008:
             # self.MolarDensity = self.DensityGERG(iFlag=0)[2]
             self.MolarDensity = properties[1]
             self.rho = properties[17]  # kg/m3
-            self.standard_density = self.rho * self.T / self.P * atm / 288.15  # TODO: define global constants
+            self.standard_density = self.rho * self.T / self.P / 1e3 * atm / 288.15  # TODO: define global constants
             self.SG = properties[18]
             self.Z = properties[2]
             self.dPdD = properties[3]
@@ -341,7 +341,7 @@ class GasMixtureGERG2008:
 
         else:
             self.PropertiesGERG()
-            self.standard_density = self.rho * self.T / self.P * atm / 288.15  # TODO: define global constants
+            self.standard_density = self.rho * self.T / self.P / 1e3 * atm / 288.15  # TODO: define global constants
 
             self.HHV_J_per_m3 = self.CalculateHeatingValue(comp=composition, hhv=True, parameter="volume")
             self.HHV_J_per_sm3 = self.HHV_J_per_m3 / self.P / 1000 * atm / 288.15 * self.T
