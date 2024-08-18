@@ -1,11 +1,11 @@
-#  #!/usr/bin/env python
-#  -*- coding: utf-8 -*-
-#  ******************************************************************************
-#    Copyright (c) 2022.
-#    Developed by Yifei Lu
-#    Last change on 3/21/22, 3:22 PM
-#    Last change by yifei
-#   *****************************************************************************
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 8/13/24, 10:08 AM
+#     Last change by yifei
+#    *****************************************************************************
 import math
 import logging
 from ....utils.exception import ZeroFlowError
@@ -105,3 +105,31 @@ def volumetric_flow_rate_first_order_derivative(pipe_physical_char, energy_diffe
 
 def mass_flow_rate_first_order_derivative(rho_standard, q_first_order_derivative):
     return rho_standard * q_first_order_derivative
+
+
+def calculate_stable_flow_rate(connection, tol=0.001):
+    """
+    Repeatedly calculates the flow rate until the change between
+    consecutive results is smaller than the specified tolerance.
+
+    :param connection: The connection object that has the calc_flow_rate method.
+    :param tol: The acceptable percentage change (default is 0.1%).
+    :return: The final stable flow rate.
+    """
+    # Initial calculation
+    _previous_flow_rate = connection.calc_flow_rate()
+    _change = float('inf')  # Start with an infinite change to enter the loop
+
+    # Loop until the change is smaller than the tolerance
+    while _change >= tol:
+        _current_flow_rate = connection.calc_flow_rate()
+
+        # Calculate the change as the absolute percentage difference
+        _change = abs((_current_flow_rate - _previous_flow_rate) / _previous_flow_rate)
+
+        # Update the previous_flow_rate for the next iteration
+        _previous_flow_rate = _current_flow_rate
+
+    # Return the stable flow rate
+    return _previous_flow_rate
+
