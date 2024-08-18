@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/13/24, 10:08 AM
+#     Last change on 8/18/24, 5:11 PM
 #     Last change by yifei
 #    *****************************************************************************
 import math
@@ -107,21 +107,24 @@ def mass_flow_rate_first_order_derivative(rho_standard, q_first_order_derivative
     return rho_standard * q_first_order_derivative
 
 
-def calculate_stable_flow_rate(connection, tol=0.001):
+def calculate_stable_flow_rate(connection, tol=0.001, max_iter=5):
     """
     Repeatedly calculates the flow rate until the change between
     consecutive results is smaller than the specified tolerance.
 
     :param connection: The connection object that has the calc_flow_rate method.
     :param tol: The acceptable percentage change (default is 0.1%).
+    :param max_iter: The maximum number of iterations (default is 5).
     :return: The final stable flow rate.
     """
     # Initial calculation
     _previous_flow_rate = connection.calc_flow_rate()
     _change = float('inf')  # Start with an infinite change to enter the loop
 
+    n_iter = 0
+
     # Loop until the change is smaller than the tolerance
-    while _change >= tol:
+    while _change >= tol and n_iter < max_iter:
         _current_flow_rate = connection.calc_flow_rate()
 
         # Calculate the change as the absolute percentage difference
@@ -129,6 +132,8 @@ def calculate_stable_flow_rate(connection, tol=0.001):
 
         # Update the previous_flow_rate for the next iteration
         _previous_flow_rate = _current_flow_rate
+
+        n_iter += 1
 
     # Return the stable flow rate
     return _previous_flow_rate
