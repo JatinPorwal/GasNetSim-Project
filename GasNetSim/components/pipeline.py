@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/18/24, 4:00 PM
+#     Last change on 8/18/24, 8:33 PM
 #     Last change by yifei
 #    *****************************************************************************
 import logging
@@ -12,7 +12,7 @@ from scipy.constants import bar, atm, zero_Celsius
 
 from .node import *
 from .utils.pipeline_function.flow_rate import *
-from .utils.utils import *
+# from .utils.utils import *
 from .utils.pipeline_function.friction_factor import *
 from .utils.pipeline_function.outlet_temperature import *
 from .utils.gas_mixture.gas_mixture import *
@@ -543,6 +543,7 @@ class ShortPipe:
         self.outlet_index = outlet.index
         self.flow_rate = - self.inlet.volumetric_flow  # Short pipes are used to connect to supply nodes
         self.gas_mixture = self.inlet.gas_mixture
+        self.outflow_composition = self.inlet.gas_mixture.eos_composition
 
     def update_gas_mixture(self):
         if self.flow_rate is None or self.flow_rate >= 0:
@@ -583,6 +584,12 @@ class ShortPipe:
         """
 
         return - self.inlet.volumetric_flow
+
+    def calc_flow_velocity(self):
+        return 0
+
+    def calculate_stable_flow_rate(self):
+        return self.calc_flow_rate()
 
     def calc_gas_mass_flow(self):
         """

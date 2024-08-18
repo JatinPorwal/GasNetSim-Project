@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/14/24, 8:42 AM
+#     Last change on 8/18/24, 5:32 PM
 #     Last change by yifei
 #    *****************************************************************************
 import copy
@@ -15,6 +15,8 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from timeit import default_timer as timer
+
+from ..pipeline import Pipeline
 
 try:
     import cupy as cp
@@ -172,7 +174,8 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections,
 
     while to_update:
         for connection in connections.values():
-            connection = gas_composition_tracking(connection, time_step=time_step, method=tracking_method)
+            if type(connection) == Pipeline:
+                connection = gas_composition_tracking(connection, time_step=time_step, method=tracking_method)
 
         _nodal_composition_matrix = create_nodal_composition_matrix(nodes, connections)
         nodes = update_temporary_nodal_gas_mixture_properties(nodes, _nodal_composition_matrix)

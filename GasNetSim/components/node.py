@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/28/24, 9:47 PM
+#     Last change on 8/18/24, 5:48 PM
 #     Last change by yifei
 #    *****************************************************************************
 from .utils.gas_mixture import *
@@ -27,10 +27,10 @@ class Node:
         :param altitude: Elevation of the network node [m]
         """
         self.index = node_index
-        # if gas_composition is not None:
-        #     self.gas_composition = gas_composition
-        # else:
-        #     self.gas_composition = NATURAL_GAS_gri30
+        if gas_composition is not None:
+            self.gas_composition = gas_composition
+        else:
+            self.gas_composition = NATURAL_GAS_gri30
         self.pressure = pressure_pa
         if pressure_pa is not None:
             self.pressure_bar = pressure_pa / bar
@@ -53,12 +53,12 @@ class Node:
         #     self.flow_type = 'volumetric'
 
         try:
-            self.gas_mixture = GasMixture(composition=gas_composition,
+            self.gas_mixture = GasMixture(composition=self.gas_composition,
                                           temperature=self.temperature,
                                           pressure=self.pressure)
         except (TypeError, AttributeError):
             # If pressure or temperature is missing for some nodes
-            self.gas_mixture = GasMixture(composition=NATURAL_GAS_gri30,
+            self.gas_mixture = GasMixture(composition=self.gas_composition,
                                           temperature=288.15,
                                           pressure=50 * bar)
 
