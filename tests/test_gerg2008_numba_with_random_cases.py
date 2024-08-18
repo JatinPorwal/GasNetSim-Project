@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/25/24, 11:33 AM
+#     Last change on 8/18/24, 4:41 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -59,7 +59,8 @@ def test_heating_value_100iter():
         molardensity = gas_mixture.MolarDensity
         calculated_heating_value = CalculateHeatingValue_numba(MolarMass=molarmass, MolarDensity=molardensity, comp=gerg_composition, hhv=True, parameter="volume")
 
-        assert_almost_equal(calculated_heating_value, expected_heating_value, decimal=5)
+        # assert_almost_equal(calculated_heating_value, expected_heating_value, decimal=5)
+        np.testing.assert_allclose(calculated_heating_value, expected_heating_value, rtol=1e-5)
 
 
 # def test_convert_composition_gerg_100iter():

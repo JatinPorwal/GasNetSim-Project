@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/14/24, 4:42 PM
+#     Last change on 8/18/24, 4:37 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -415,7 +415,7 @@ class GasMixtureGERG2008:
         # oxygen for complete combustion
         n_O = n_CO2 * 2 + n_SO2 * 2 + n_H2O * 1  # 2 is number of O atoms in CO2 AND SO2 and 1 is number of O atoms in H2O
         n_O2 = n_O / 2
-        reactants_dict = deepcopy(comp)
+        reactants_dict = np.copy(comp)
         reactants_dict[15] += n_O2
         # reactants_dict.update({'oxygen': n_O2})
 
