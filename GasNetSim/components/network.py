@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/14/24, 5:16 PM
+#     Last change on 8/18/24, 11:40 AM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -411,8 +411,13 @@ class Network:
             i = connection.inlet_index - 1
             j = connection.outlet_index - 1
 
-            flow_mat[i][j] -= connection.calc_flow_rate()
-            flow_mat[j][i] += connection.calc_flow_rate()
+            # flow_mat[i][j] -= connection.calc_flow_rate()
+            # flow_mat[j][i] += connection.calc_flow_rate()
+
+            _tmp_flow = connection.calc_flow_rate()
+
+            flow_mat[i][j] -= _tmp_flow
+            flow_mat[j][i] += _tmp_flow
 
             if type(connection) is not ShortPipe:
                 slope_corr = connection.calc_pipe_slope_correction()
@@ -608,6 +613,7 @@ class Network:
                                                                     pressure=self.nodes[i_node].pressure)
                     except Exception:
                         logging.warning(i_node)
+                        logging.warning(self.nodes[i_node].pressure)
                         logging.warning(nodal_gas_inflow_composition[i_node])
 
             if use_cuda:
@@ -663,6 +669,8 @@ class Network:
             # plt.show()
 
             # print(f"Current iteration number: {n_iter}")
+            # print(f"{max([n.pressure for n in self.nodes.values()])}")
+            # print(f"{min([n.pressure for n in self.nodes.values()])}")
             # print([x.flow_rate for x in self.pipelines.values()])
             # print([x.temperature for x in self.nodes.values()])
             # print(f"Volumetric flow target: {f_target}")
