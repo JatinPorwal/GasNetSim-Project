@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/11/24, 3:27 PM
+#     Last change on 8/17/24, 5:38 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -220,7 +220,7 @@ class GasMixtureGERG2008:
             self.isentropic_exponent = properties[16]  # Isentropic exponent
 
             self.R_specific = properties[19]
-            self.viscosity = 2e-4  # TODO add function
+            self.viscosity = 2e-5  # TODO add function
 
         else:
             self.PropertiesGERG()
