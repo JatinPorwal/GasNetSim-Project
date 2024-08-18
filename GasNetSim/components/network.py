@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/7/24, 4:51 PM
+#     Last change on 8/18/24, 4:00 PM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -413,7 +413,7 @@ class Network:
             i = connection.inlet_index - 1
             j = connection.outlet_index - 1
 
-            connection.calc_flow_rate()
+            connection.calculate_stable_flow_rate()
 
             flow_mat[i][j] -= connection.flow_rate
             flow_mat[j][i] += connection.flow_rate

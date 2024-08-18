@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/13/24, 9:49 AM
+#     Last change on 8/18/24, 4:00 PM
 #     Last change by yifei
 #    *****************************************************************************
 import logging
@@ -272,6 +272,9 @@ class Pipeline:
         self.flow_rate = flow_direction * abs(p1 ** 2 - p2 ** 2 - slope_correction) ** (1 / 2) * tmp
 
         return self.flow_rate
+
+    def calculate_stable_flow_rate(self, tol=0.0001):
+        return calculate_stable_flow_rate(self, tol=tol)
 
     def flow_rate_first_order_derivative(self, is_inlet=True):
         p1 = self.inlet.pressure
