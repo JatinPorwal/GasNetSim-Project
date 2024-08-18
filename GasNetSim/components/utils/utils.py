@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/7/24, 9:23 AM
+#     Last change on 8/14/24, 8:42 AM
 #     Last change by yifei
 #    *****************************************************************************
 import copy
@@ -163,7 +163,7 @@ def allclose_with_nan(a, b, rtol=1e-05, atol=1e-08):
     return np.all(nan_equal | close_equal)
 
 
-def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_matrix,
+def calculate_nodal_inflow_states(nodes, connections, mapping_connections,
                                   tracking_method="simple_mixing",
                                   use_cuda=False,
                                   time_step=0):
@@ -175,7 +175,7 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_
             connection = gas_composition_tracking(connection, time_step=time_step, method=tracking_method)
 
         _nodal_composition_matrix = create_nodal_composition_matrix(nodes, connections)
-        nodes = update_temporaray_nodal_gas_mixture_properties(nodes, _nodal_composition_matrix)
+        nodes = update_temporary_nodal_gas_mixture_properties(nodes, _nodal_composition_matrix)
         if allclose_with_nan(_nodal_composition_matrix, _prev_nodal_composition_matrix):
             to_update = False
         else:
@@ -183,7 +183,7 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections, flow_
 
     return _nodal_composition_matrix
 
-def update_temporaray_nodal_gas_mixture_properties(nodes, nodal_composition_matrix):
+def update_temporary_nodal_gas_mixture_properties(nodes, nodal_composition_matrix):
     """
 
     :param nodes:

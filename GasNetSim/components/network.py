@@ -600,7 +600,7 @@ class Network:
                 node.gas_mixture.eos_composition_tmp = node.gas_mixture.eos_composition
 
             nodal_gas_inflow_composition = calculate_nodal_inflow_states(self.nodes, self.connections,
-                                                                         mapping_connections, f_mat,
+                                                                         mapping_connections,
                                                                          tracking_method=tracking_method)
 
             # inflow_xi, inflow_temp = calculate_nodal_inflow_states(self.nodes, self.connections,
@@ -661,12 +661,13 @@ class Network:
             # plt.plot(delta_flow)
             # plt.show()
 
-            print(f"Current iteration number: {n_iter}")
+            # print(f"Current iteration number: {n_iter}")
             # print([x.flow_rate for x in self.pipelines.values()])
             # print([x.temperature for x in self.nodes.values()])
             # print(f"Volumetric flow target: {f_target}")
             # print(f"Error between calculated flow and the target flow: {delta_flow}")
-            print(f"Pressure change after each iteration: {max(abs(delta_p))}")
+            # print(f"Node {np.where(np.abs(delta_flow) > tol)[0]}: {delta_flow[np.where(np.abs(delta_flow) > tol)[0]]}")
+            # print(f"Pressure change after each iteration: {max(abs(delta_p))}")
             # print(f"Nodal Pressure: {p}")
 
             # simulation does not converge
