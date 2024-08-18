@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/11/24, 1:36 PM
+#     Last change on 8/18/24, 11:37 AM
 #     Last change by yifei
 #    *****************************************************************************
 import numpy as np
@@ -63,7 +63,7 @@ def hagen_poiseuille(N_re):
 
 
 def nikuradse(d, epsilon):
-    d *= 1000
+    # d *= 1000
     return 1 / (2 * math.log(d / epsilon, 10) + 1.14) ** 2
 
 
@@ -87,7 +87,7 @@ def colebrook_white(epsilon, d, N_re):
     :param N_re:
     :return:
     """
-    d *= 1000
+    # d *= 1000
     def func(f): return -2 * math.log(epsilon/d/3.71 + 2.51/N_re/math.sqrt(f), 10) - 1 / math.sqrt(f)
     f_init_guess = np.array(0.01)
     friction_factor = fsolve(func, f_init_guess)
@@ -102,11 +102,25 @@ def nikuradse_from_CWH(epsilon, d):
     return (-2 * math.log(epsilon/3.71/d)) ** (-2)
 
 
-def chen(epsilon, d, N_re):
-    d *= 1000
-    _ = epsilon/d/3.7065 - 5.0452/N_re * math.log((((epsilon/d)**1.1096)/2.8257 + (7.149/N_re)**0.8961), 10)
-    return 1/(4 * math.log(_, 10) ** 2)
+# def chen(epsilon, d, N_re):
+#     d *= 1000
+#     _ = epsilon/d/3.7065 - 5.0452/N_re * math.log((((epsilon/d)**1.1096)/2.8257 + (7.149/N_re)**0.8961), 10)
+#     return 1/(4 * math.log(_, 10) ** 2)
 
+
+def chen(epsilon, d, N_re):
+    # Calculate the intermediate values according to the Chen equation
+    _term1 = epsilon / d / 3.7065
+    _term2 = 5.0452 / N_re * math.log10(((epsilon / d) ** 1.1098 / 2.8257) + (5.8506 / N_re) ** 0.8981)
+
+    # Ensure the argument for the logarithm is positive
+    if _term1 - _term2 <= 0:
+        raise ValueError("Logarithm argument must be positive. Check the Reynolds number or flow velocity!")
+
+    _term3 = -2 * math.log10(_term1 - _term2)
+
+    _friction_factor = 1 / (_term3 ** 2)
+    return _friction_factor
 
 def weymouth(d):
     return 0.0093902 / (d ** (1 / 3))
