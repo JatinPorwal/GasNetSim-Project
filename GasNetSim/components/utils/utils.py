@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/18/24, 5:32 PM
+#     Last change on 9/4/24, 9:29 AM
 #     Last change by yifei
 #    *****************************************************************************
 import copy
@@ -15,15 +15,16 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from timeit import default_timer as timer
+from numba import njit, float64, boolean
 
 from ..pipeline import Pipeline
 
-try:
-    import cupy as cp
-    import cupy.sparse.linalg as cpsplinalg
-except ImportError:
-    # logging.warning(f"CuPy is not installed or not available!")
-    print(f"CuPy is not installed or not available!")
+# try:
+#     import cupy as cp
+#     import cupy.sparse.linalg as cpsplinalg
+# except ImportError:
+#     # logging.warning(f"CuPy is not installed or not available!")
+#     print(f"CuPy is not installed or not available!")
 
 from .cuda_support import create_matrix_of_zeros
 
@@ -153,12 +154,15 @@ def create_nodal_composition_matrix(nodes, connections, use_cuda=False):
 
     _nodal_inflow_vector = np.sum(np.where(_branch_flow_matrix > 0, _branch_flow_matrix, 0), axis=0)
 
-    _nodal_composition_matrix = _nodal_inflow_composition.T / _nodal_inflow_vector
+    with np.errstate(divide='ignore', invalid='ignore'):
+        _nodal_composition_matrix = _nodal_inflow_composition.T / _nodal_inflow_vector
+    # _nodal_composition_matrix = _nodal_inflow_composition.T / _nodal_inflow_vector
 
     return _nodal_composition_matrix
 
 
-def allclose_with_nan(a, b, rtol=1e-05, atol=1e-08):
+# @njit(boolean(float64[:, :], float64[:, :], float64, float64))
+def allclose_with_nan(a, b, rtol=1e-03, atol=1e-04):
     # Check if arrays are close, considering NaNs
     nan_equal = np.isnan(a) & np.isnan(b)
     close_equal = np.isclose(a, b, rtol=rtol, atol=atol, equal_nan=False)
@@ -172,7 +176,10 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections,
     to_update = True
     _prev_nodal_composition_matrix = np.zeros((21, (len(nodes))))
 
+    _count_nodal_inflow_iterations = 0
+
     while to_update:
+        _count_nodal_inflow_iterations += 1
         for connection in connections.values():
             if type(connection) == Pipeline:
                 connection = gas_composition_tracking(connection, time_step=time_step, method=tracking_method)
@@ -183,6 +190,8 @@ def calculate_nodal_inflow_states(nodes, connections, mapping_connections,
             to_update = False
         else:
             _prev_nodal_composition_matrix = _nodal_composition_matrix
+
+    # print(_count_nodal_inflow_iterations)
 
     return _nodal_composition_matrix
 
@@ -198,7 +207,7 @@ def update_temporary_nodal_gas_mixture_properties(nodes, nodal_composition_matri
             pass
         else:
             nodes[_i+1].gas_mixture.eos_composition_tmp = nodal_composition_matrix[:, _i]
-            nodes[_i+1].gas_mixture.update_gas_mixture()
+            # nodes[_i+1].gas_mixture.update_gas_mixture()
     return nodes
 
 

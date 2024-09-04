@@ -3,19 +3,16 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/18/24, 8:33 PM
+#     Last change on 9/2/24, 10:31 AM
 #     Last change by yifei
 #    *****************************************************************************
-import logging
-import math
-from scipy.constants import bar, atm, zero_Celsius
 
-from .node import *
+from .node import Node
 from .utils.pipeline_function.flow_rate import *
 # from .utils.utils import *
 from .utils.pipeline_function.friction_factor import *
 from .utils.pipeline_function.outlet_temperature import *
-from .utils.gas_mixture.gas_mixture import *
+from GasNetSim.components.gas_mixture.gas_mixture import *
 
 
 STANDARD_TEMPERATURE = zero_Celsius + 15  # 15 degree Celsius in Kelvin
@@ -29,7 +26,7 @@ class Pipeline:
 
     def __init__(self, inlet: Node, outlet: Node, diameter, length, efficiency=0.85, roughness=0.000015,
                  ambient_temp=15+zero_Celsius, ambient_pressure=1*atm, heat_transfer_coefficient=3.69, valve=0,
-                 friction_factor_method='chen', conversion_factor=1.):
+                 friction_factor_method='chen', conversion_factor=1., constant_friction_factor=None):
         """
 
         :param inlet: Gas pipe inlet node
@@ -58,7 +55,9 @@ class Pipeline:
         self.valve = valve
         self.gas_mixture = self.inlet.gas_mixture
         self.friction_factor_method = friction_factor_method
+        self.constant_friction_factor = constant_friction_factor
         self.conversion_factor = conversion_factor
+        self.geometry = None
 
         # gas composition tracking
         self.composition_history = np.array([])
@@ -163,6 +162,9 @@ class Pipeline:
         implemented_methods = ['weymouth', 'chen', 'nikuradse', 'colebrook-white', 'hagen-poiseuille']
 
         method = self.friction_factor_method
+
+        if method == "constant":
+            return self.constant_friction_factor
 
         if method in implemented_methods:
             pass

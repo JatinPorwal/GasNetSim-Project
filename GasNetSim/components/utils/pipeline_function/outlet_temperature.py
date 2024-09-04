@@ -1,11 +1,11 @@
-#  #!/usr/bin/env python
-#  -*- coding: utf-8 -*-
-#  ******************************************************************************
-#    Copyright (c) 2022.
-#    Developed by Yifei Lu
-#    Last change on 3/9/22, 11:18 AM
-#    Last change by yifei
-#   *****************************************************************************
+#   #!/usr/bin/env python
+#   -*- coding: utf-8 -*-
+#   ******************************************************************************
+#     Copyright (c) 2024.
+#     Developed by Yifei Lu
+#     Last change on 8/21/24, 11:12 AM
+#     Last change by yifei
+#    *****************************************************************************
 import math
 
 
@@ -57,10 +57,10 @@ def calculate_steady_state_outlet_temperature(beta, gamma, Ts):
 if __name__ == "__main__":
     import numpy as np
     import matplotlib.pyplot as plt
-    from scipy.constants import bar, R
+    from scipy.constants import bar
 
     # from GasNetSim.components.utils.gas_mixture.thermo.thermo import Mixture
-    from GasNetSim.components.utils.gas_mixture.gas_mixture import GasMixture
+    from GasNetSim.components.gas_mixture import GasMixture
 
     gas_mixture = GasMixture(temperature=300,
                              pressure=50 * bar,

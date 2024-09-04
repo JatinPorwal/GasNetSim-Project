@@ -3,17 +3,13 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/25/24, 10:42 AM
+#     Last change on 8/21/24, 11:12 AM
 #     Last change by yifei
 #    *****************************************************************************
-from collections import OrderedDict
 from scipy.constants import bar
-import pandas as pd
-import math
 
-from GasNetSim.components.utils.gas_mixture.typical_mixture_composition import NATURAL_GAS
-from GasNetSim.components.utils.gas_mixture.GERG2008 import *
-from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import convert_to_gerg2008_composition
+from GasNetSim.components.gas_mixture.GERG2008 import *
+from GasNetSim.components.gas_mixture.GERG2008 import convert_to_gerg2008_composition
 
 # test over natural gas
 gerg_ng_composition = convert_to_gerg2008_composition(NATURAL_GAS)

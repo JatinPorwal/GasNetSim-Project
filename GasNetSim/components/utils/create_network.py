@@ -1,9 +1,9 @@
 #   #!/usr/bin/env python
 #   -*- coding: utf-8 -*-
 #   ******************************************************************************
-#     Copyright (c) 2023.
+#     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 5/31/23, 4:14 PM
+#     Last change on 8/22/24, 8:45 AM
 #     Last change by yifei
 #    *****************************************************************************
 import pandas as pd
@@ -11,10 +11,10 @@ import numpy as np
 from collections import OrderedDict
 from pathlib import Path
 
-from GasNetSim.components.pipeline import Pipeline, Resistance, ShortPipe, LinearResistance
-from GasNetSim.components.node import Node
-from GasNetSim.components.network import Network
-from GasNetSim.utils.exception import *
+from ..pipeline import Pipeline, Resistance, ShortPipe, LinearResistance
+from ..node import Node
+from ..network import Network
+from ...utils.exception import *
 
 
 def read_nodes(path_to_file: Path) -> dict:
@@ -27,9 +27,16 @@ def read_nodes(path_to_file: Path) -> dict:
     df_node = pd.read_csv(path_to_file, delimiter=';')
     df_node = df_node.replace({np.nan: None})
 
+    _long = None
+    _lat = None
+
     for row_index, row in df_node.iterrows():
         if row['gas_composition'] is not None:
             row['gas_composition'] = OrderedDict(eval(row['gas_composition']))
+        if row['longitude'] is not None:
+            _long = row['longitude']
+        if row['latitude'] is not None:
+            _lat = row['latitude']
         nodes[row['node_index']] = Node(node_index=row['node_index'],
                                         pressure_pa=row['pressure_pa'],
                                         volumetric_flow=row['flow_sm3_per_s'],
@@ -37,7 +44,9 @@ def read_nodes(path_to_file: Path) -> dict:
                                         temperature=row['temperature_k'],
                                         altitude=row['altitude_m'],
                                         gas_composition=row['gas_composition'],
-                                        node_type=row['node_type'])
+                                        node_type=row['node_type'],
+                                        longitude=_long,
+                                        latitude=_lat)
     return nodes
 
 

@@ -3,10 +3,10 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 7/25/24, 10:52 AM
+#     Last change on 8/21/24, 11:12 AM
 #     Last change by yifei
 #    *****************************************************************************
-from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
+from GasNetSim.components.gas_mixture.GERG2008 import *
 from scipy.constants import bar
 from numpy.testing import assert_almost_equal
 

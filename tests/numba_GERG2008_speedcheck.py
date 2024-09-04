@@ -3,17 +3,16 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/26/24, 10:23 AM
+#     Last change on 9/4/24, 9:23 AM
 #     Last change by yifei
 #    *****************************************************************************
 
 from scipy.constants import bar
-from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008_numba import *
 from timeit import default_timer as timer
 from numba import prange
 from concurrent.futures import ProcessPoolExecutor
 
-from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
+from GasNetSim.components.gas_mixture.GERG2008 import *
 
 
 def speed_heating_value(repeats=10000):
@@ -21,23 +20,25 @@ def speed_heating_value(repeats=10000):
         Speed check the numba version of the CalculateHeatingValue function of GasMixtureGERG2008 class.
     """
     # Create the NIST gas mixture dictionary
-    nist_gas_mixture = {}
+    nist_gas_mixture = OrderedDict({})
     a = ['methane', 'nitrogen', 'carbon dioxide', 'ethane', 'propane', 'isobutane',
          'butane', 'isopentane', 'pentane', 'hexane', 'heptane', 'octane', 'nonane',
          'decane', 'hydrogen', 'oxygen', 'carbon monoxide', 'water', 'hydrogen sulfide',
          'helium', 'argon']
     b = np.array([0.77824, 0.02, 0.06, 0.08, 0.03, 0.0015, 0.003, 0.0005, 0.00165, 0.00215, 0.00088, 0.00024, 0.00015, 0.00009,
          0.004, 0.005, 0.002, 0.0001, 0.0025, 0.007, 0.001])
-    for ii in range(21):
-        nist_gas_mixture[a[ii]] = b[ii]
+    for _i in range(21):
+        nist_gas_mixture[a[_i]] = b[_i]
+
+    gerg2008_composition = convert_to_gerg2008_composition(nist_gas_mixture)
 
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, gerg2008_composition, use_numba=False)
 
     # Measure the execution time
     start_time = timer()
     for _ in range(repeats):
-        gas_mixture.CalculateHeatingValue(comp=nist_gas_mixture, hhv=True, parameter="volume")
+        gas_mixture.CalculateHeatingValue(comp=gerg2008_composition, hhv=True, parameter="volume")
     end_time = timer()
     function_time = end_time - start_time
     print(f"For {repeats} iterations, CalculateHeatingValue took {function_time:.6f} seconds.")
@@ -46,7 +47,7 @@ def speed_heating_value(repeats=10000):
     # Measure the execution time
     start_time = timer()
     for _ in range(repeats):
-        CalculateHeatingValue_numba(MolarMass=molarmass, MolarDensity=molardensity, comp=nist_gas_mixture, hhv=True, parameter="volume")
+        CalculateHeatingValue_numba(MolarMass=molarmass, MolarDensity=molardensity, comp=gerg2008_composition, hhv=True, parameter="volume")
     end_time = timer()
     function_time = end_time - start_time
     print(f"For {repeats} iterations, CalculateHeatingValue_numba took {function_time:.6f} seconds.")
@@ -352,8 +353,10 @@ def speed_alphar_gerg(repeats=10000):
     for ii in range(21):
         nist_gas_mixture[a[ii]] = b[ii]
 
+    nist_gas_mixture_gerg2008_composition = convert_to_gerg2008_composition(nist_gas_mixture)
+
     # Create an instance of the GasMixtureGERG2008 class with the NIST gas mixture
-    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture, use_numba=True)
+    gas_mixture = GasMixtureGERG2008(500 * bar, 400, nist_gas_mixture_gerg2008_composition, use_numba=False)
 
     # Expected value calculated from the function call
     #                         ar(0,0) - Residual Helmholtz energy (dimensionless, =a/RT)
@@ -369,7 +372,7 @@ def speed_alphar_gerg(repeats=10000):
     start_time = timer()
     for _ in prange(repeats):
         # expected_alphargerg = gas_mixture.PropertiesGERG()
-        PropertiesGERG_numba(T=gas_mixture.T, P=gas_mixture.P, x=gas_mixture.x)
+        gas_mixture.AlpharGERG(1, 0, D)
     end_time = timer()
     function_time = end_time - start_time
     print(f"For {repeats} iterations, AlpharGERG took {function_time:.6f} seconds.")
@@ -378,20 +381,20 @@ def speed_alphar_gerg(repeats=10000):
 
     start_time = timer()
     for _ in prange(repeats):
-        PropertiesGERG_numba(Temp, b, 1, 0, D)
+        AlpharGERG_numba(Temp, b, 1, 0, D)
     end_time = timer()
     function_time = end_time - start_time
     print(f"For {repeats} iterations, AlpharGERG_numba took {function_time:.6f} seconds.")
 
 
-    arguments = [(Temp, b, 1, 0, D) for _ in range(repeats)] 
-
-    start_time = timer()
-    # Use ProcessPoolExecutor to execute the wrapper function in parallel
-    with ProcessPoolExecutor() as executor:
-        executor.map(wrapper_function, arguments)
-    end_time = timer()
-    print(f"For {repeats} iterations, AlpharGERG_numba using parallelization took {(end_time-start_time):.6f} seconds.")
+    # arguments = [(Temp, b, 1, 0, D) for _ in range(repeats)]
+    #
+    # start_time = timer()
+    # # Use ProcessPoolExecutor to execute the wrapper function in parallel
+    # with ProcessPoolExecutor() as executor:
+    #     executor.map(wrapper_function, arguments)
+    # end_time = timer()
+    # print(f"For {repeats} iterations, AlpharGERG_numba using parallelization took {(end_time-start_time):.6f} seconds.")
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/8/24, 11:42 AM
+#     Last change on 9/4/24, 6:56 AM
 #     Last change by yifei
 #    *****************************************************************************
 import logging
@@ -14,12 +14,12 @@ import scipy
 import scipy.sparse.linalg as splinalg
 import subprocess
 
-try:
-    import cupy as cp
-    import cupy.sparse.linalg as cpsplinalg
-except ImportError:
-    # logging.warning(f"CuPy is not installed or not available!")
-    print(f"CuPy is not installed or not available!")
+# try:
+#     import cupy as cp
+#     import cupy.sparse.linalg as cpsplinalg
+# except ImportError:
+#     # logging.warning(f"CuPy is not installed or not available!")
+#     print(f"CuPy is not installed or not available!")
 
 def create_matrix_of_zeros(size, use_cuda=False, sparse_matrix=False):
     if use_cuda:

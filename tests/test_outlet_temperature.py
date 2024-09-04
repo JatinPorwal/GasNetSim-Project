@@ -3,20 +3,16 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/29/24, 11:34 AM
+#     Last change on 8/21/24, 11:12 AM
 #     Last change by yifei
 #    *****************************************************************************
 import pandas as pd
-import numpy as np
 from tqdm import tqdm
 from numpy.testing import assert_almost_equal
 
-from GasNetSim.components.utils.gas_mixture import GasMixture
 from GasNetSim.components.utils.pipeline_function.outlet_temperature import *
 
-from scipy.constants import bar, R, atm
-
-import pytest
+from scipy.constants import bar
 
 
 def test_pipeline_outlet_temperature_calculation():

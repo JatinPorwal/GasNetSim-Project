@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/18/24, 4:00 PM
+#     Last change on 9/4/24, 9:28 AM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -24,12 +24,12 @@ from .node import *
 from .pipeline import *
 from .utils import *
 
-try:
-    import cupy as cp
-    import cupy.sparse.linalg as cpsplinalg
-except ImportError:
-    # logging.warning(f"CuPy is not installed or not available!")
-    print(f"CuPy is not installed or not available!")
+# try:
+#     import cupy as cp
+#     import cupy.sparse.linalg as cpsplinalg
+# except ImportError:
+#     # logging.warning(f"CuPy is not installed or not available!")
+#     print(f"CuPy is not installed or not available!")
 
 from .utils.cuda_support import create_matrix_of_zeros, list_to_array
 

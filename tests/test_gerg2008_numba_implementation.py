@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/18/24, 4:41 PM
+#     Last change on 8/21/24, 11:12 AM
 #     Last change by yifei
 #    *****************************************************************************
 
@@ -25,9 +25,8 @@
 from scipy.constants import bar
 from numpy.testing import assert_almost_equal, assert_allclose
 
-from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
-from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008_numba import *
-from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import convert_to_gerg2008_composition 
+from GasNetSim.components.gas_mixture.GERG2008 import *
+from GasNetSim.components.gas_mixture.GERG2008 import convert_to_gerg2008_composition
 
 
 # Test the tanh, sinh, and cosh functions

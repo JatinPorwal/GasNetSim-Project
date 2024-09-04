@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/18/24, 11:37 AM
+#     Last change on 8/21/24, 10:39 PM
 #     Last change by yifei
 #    *****************************************************************************
 import numpy as np
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     from scipy.constants import bar
 
-    from GasNetSim.components.utils.gas_mixture.gas_mixture import GasMixture
+    from GasNetSim.components.gas_mixture import GasMixture
     from collections import OrderedDict
 
     gas_comp = OrderedDict([

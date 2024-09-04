@@ -3,18 +3,14 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/14/24, 2:59 PM
+#     Last change on 8/21/24, 11:12 AM
 #     Last change by yifei
 #    *****************************************************************************
-from numba.cpython.mathimpl import unary_math_extern
 from numpy.testing import assert_almost_equal
-from collections import OrderedDict
 from scipy.constants import bar
 import pandas as pd
-import math
-import matplotlib.pyplot as plt
 
-from GasNetSim.components.utils.gas_mixture.GERG2008.gerg2008 import *
+from GasNetSim.components.gas_mixture.GERG2008 import *
 import cantera as ct
 
 def heating_value(fuel):

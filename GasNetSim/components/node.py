@@ -3,12 +3,13 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/18/24, 5:48 PM
+#     Last change on 8/22/24, 9:34 AM
 #     Last change by yifei
 #    *****************************************************************************
-from .utils.gas_mixture import *
-from ..utils.exception import InitializationError
-from scipy.constants import bar, atm
+from scipy.constants import bar
+
+from .gas_mixture.typical_mixture_composition import NATURAL_GAS_gri30
+from .gas_mixture.gas_mixture import GasMixture
 
 
 class Node:
@@ -17,7 +18,8 @@ class Node:
     """
 
     def __init__(self, node_index, volumetric_flow=None, energy_flow=None, pressure_pa=None,
-                 temperature=288.15, altitude=0, gas_composition=None, node_type='demand'):
+                 temperature=288.15, altitude=0, gas_composition=None, node_type='demand',
+                 longitude=None, latitude=None):
         """
         Initial method
         :param node_index: Node index
@@ -25,6 +27,11 @@ class Node:
         :param pressure_pa: Gas nodal pressure [Pa]
         :param temperature: Gas nodal temperature [K]
         :param altitude: Elevation of the network node [m]
+        :param gas_composition: Gas nodal composition
+        :param node_type: Type of node
+        :param altitude: Altitude of the network node [m]
+        :param longitude: Longitude of node [degrees]
+        :param latitude: Latitude of node [degrees]
         """
         self.index = node_index
         if gas_composition is not None:
@@ -46,6 +53,8 @@ class Node:
             self.node_type = node_type
         else:
             self.node_type = 'demand'
+        self.longitude = longitude
+        self.latitude = latitude
         # flow type
         # if flow_type is not None:
         #     self.flow_type = flow_type
@@ -123,8 +132,8 @@ class Node:
 
 
 if __name__ == "__main__":
-    from GasNetSim.components.utils.gas_mixture.typical_mixture_composition import *
-    from GasNetSim.components.utils.gas_mixture import *
+    from GasNetSim.components.gas_mixture import *
+    from GasNetSim.components.gas_mixture import *
     from GasNetSim.utils.exception import InitializationError
 
     Node(node_index=1, volumetric_flow=10, pressure_pa=None, temperature=300)

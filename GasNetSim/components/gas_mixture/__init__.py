@@ -3,9 +3,10 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 2/29/24, 12:58 PM
+#     Last change on 8/20/24, 8:32 AM
 #     Last change by yifei
 #    *****************************************************************************
 from .gas_mixture import *
 # from .heating_value import *
 from .typical_mixture_composition import *
+from .GERG2008 import GasMixtureGERG2008
