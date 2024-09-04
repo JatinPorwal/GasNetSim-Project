@@ -3,13 +3,14 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/21/24, 11:12 AM
+#     Last change on 9/4/24, 10:15 AM
 #     Last change by yifei
 #    *****************************************************************************
 from scipy.constants import bar
 
 from GasNetSim.components.gas_mixture.GERG2008 import *
 from GasNetSim.components.gas_mixture.GERG2008 import convert_to_gerg2008_composition
+from GasNetSim.components.gas_mixture.typical_mixture_composition import NATURAL_GAS
 
 # test over natural gas
 gerg_ng_composition = convert_to_gerg2008_composition(NATURAL_GAS)
