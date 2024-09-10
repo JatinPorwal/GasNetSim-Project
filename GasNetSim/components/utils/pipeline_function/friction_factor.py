@@ -3,7 +3,7 @@
 #   ******************************************************************************
 #     Copyright (c) 2024.
 #     Developed by Yifei Lu
-#     Last change on 8/21/24, 10:39 PM
+#     Last change on 9/10/24, 12:38 PM
 #     Last change by yifei
 #    *****************************************************************************
 import numpy as np
@@ -88,9 +88,9 @@ def colebrook_white(epsilon, d, N_re):
     :return:
     """
     # d *= 1000
-    def func(f): return -2 * math.log(epsilon/d/3.71 + 2.51/N_re/math.sqrt(f), 10) - 1 / math.sqrt(f)
-    f_init_guess = np.array(0.01)
-    friction_factor = fsolve(func, f_init_guess)
+    def func(f): return -2 * np.log(epsilon/d/3.71 + 2.51/N_re/np.sqrt(f))/np.log(10) - 1 / np.sqrt(f)
+    f_init_guess = 0.01
+    friction_factor = fsolve(func, f_init_guess)[0]
     return friction_factor
 
 
