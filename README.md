@@ -1,8 +1,10 @@
 ![](docs/GasNetSim_Logo.svg)
 
 [//]: # ([![PyPI]&#40;https://badge.fury.io/py/GasNetSim.svg&#41;]&#40;https://badge.fury.io/py/GasNetSim&#41;)
-[![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-370/)
+[![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-370/)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fjugit.fz-juelich.de%2Fiek-10%2Fpublic%2Fsimulation%2Fgasnetsim/HEAD)
+[![DOI:10.1109/OSMSES54027.2022.9769148](https://zenodo.org/badge/DOI/10.1109/OSMSES54027.2022.9769148.svg)](https://doi.org/10.1109/OSMSES54027.2022.9769148)
 
 # **GasNetSim**
 
@@ -15,13 +17,17 @@ Future work will be carried out to include gas storage units and to take into ac
 the dynamic behavior of the gas network so that short-term simulations can be performed.
 
 ## Installation
-Currently, it is only supported using source files.
+Currently, it is only supported using source files. Using following commands to install the package in editable mode.
+
+  - ``pip install -e .``
+  - ``pip install -r ./requirements.txt``
 
 ## License
 
 The project is released under the terms of the [MPL 2.0](https://mozilla.org/MPL/2.0/).
 
 ## Dependencies
+<!-- Dependencies -->
 - ``numpy``>=1.19.2
 - ``matplotlib``>=3.3.2
 - ``scipy``>=1.5.2
@@ -32,7 +38,12 @@ The project is released under the terms of the [MPL 2.0](https://mozilla.org/MPL
 - ``setuptools``>=60.9.3
 - ``requests``>=2.25.1
 - ``pyparsing``~=3.0.7
-- ``cantera``~=2.5.1
+- ``cantera``~=3.0.0
+- ``thermo``~=0.2.23
+- ``tqdm``>=4.64.1
+- ``seaborn``>=0.12.2
+- ``networkx``~=3.1
+<!-- End Dependencies -->
 
 For the ``thermo`` package, the version used in this repo is 0.1.40. Because there are some changes 
 and new features included in the newer versions. The source files of the `thermo` package is directly
